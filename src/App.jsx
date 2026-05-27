@@ -70,7 +70,7 @@ async function callClaude(sys,prompt){
     const res=await fetch("/api/claude",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:sys,messages:[{role:"user",content:prompt}]}),
+      body:JSON.stringify({model:"claude-sonnet-4-5",max_tokens:1000,system:sys,messages:[{role:"user",content:prompt}]}),
     });
     const d=await res.json();
     return d.content?.map(b=>b.text||"").join("")||"Something went wrong. Please try again.";
