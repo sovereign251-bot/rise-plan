@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 
-
 const C = {
   rose:"#C49794",roseDark:"#a07370",blush:"#F2CFCC",
   cream:"#FFEFED",pale:"#F9F8F8",accent1:"#EBDFDD",
@@ -8,7 +7,6 @@ const C = {
   gold:"#C9A84C",
 };
 
-// ── STYLES ────────────────────────────────────────────────────────────────────
 const btn = (variant="fill",sm=false) => ({
   background: variant==="fill" ? C.rose : "transparent",
   color: variant==="fill" ? C.white : C.rose,
@@ -34,6 +32,20 @@ const chip = (active) => ({
   fontFamily:"Georgia,serif", transition:"all 0.15s",
 });
 
+// ── STRIP MARKDOWN ────────────────────────────────────────────────────────────
+function stripMarkdown(text) {
+  if (!text) return "";
+  return text
+    .replace(/\*\*\*(.+?)\*\*\*/g, '$1')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*([^*\n]+?)\*/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/_{2}(.+?)_{2}/g, '$1')
+    .replace(/_([^_\n]+?)_/g, '$1')
+    .trim();
+}
+
 function Spinner() {
   return (
     <div style={{display:"flex",alignItems:"center",gap:8,color:C.rose,fontSize:13,margin:"1rem 0"}}>
@@ -43,6 +55,45 @@ function Spinner() {
     </div>
   );
 }
+
+// ── NUDGE BOX ─────────────────────────────────────────────────────────────────
+function NudgeBox({id, label, context, nudges, onNudge}) {
+  const n = nudges[id] || {};
+  return (
+    <div style={{marginBottom:6}}>
+      <button
+        onClick={() => onNudge(id, label, context)}
+        style={{
+          background:"transparent",
+          border:`1px dashed ${C.rose}`,
+          color:C.rose, borderRadius:20,
+          padding:"3px 12px", fontSize:11,
+          cursor:"pointer", fontFamily:"Georgia,serif",
+          letterSpacing:"0.03em",
+          opacity: n.loading ? 0.6 : 1,
+        }}
+        disabled={n.loading}
+      >
+        💭 Help me think
+      </button>
+      {n.loading && (
+        <div style={{fontSize:12,color:C.rose,marginTop:4,fontStyle:"italic"}}>Thinking...</div>
+      )}
+      {n.result && (
+        <div style={{
+          background:C.cream, borderLeft:`3px solid ${C.gold}`,
+          borderRadius:8, padding:"10px 14px",
+          marginTop:6, fontSize:12,
+          color:C.charcoal, lineHeight:1.8
+        }}>
+          <div style={{fontSize:10,color:C.gold,letterSpacing:"0.1em",marginBottom:4,fontWeight:600}}>💭 NUDGE</div>
+          {stripMarkdown(n.result)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function F({label,children,hint}){
   return(
     <div style={{marginBottom:"1.1rem"}}>
@@ -65,16 +116,25 @@ function Sec({title,sub,children}){
   );
 }
 
-async function callClaude(sys,prompt){
+async function callClaude(sys, prompt, maxTokens=1000){
   try{
     const res=await fetch("/api/claude",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,system:sys,messages:[{role:"user",content:prompt}]}),
+      body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:maxTokens,system:sys,messages:[{role:"user",content:prompt}]}),
     });
     const d=await res.json();
     return d.content?.map(b=>b.text||"").join("")||"Something went wrong. Please try again.";
   }catch{return"Error connecting to AI. Please try again.";}
+}
+
+async function getNudge(fieldId, fieldLabel, context, setNudges) {
+  setNudges(prev => ({...prev, [fieldId]: {loading: true, result: ""}}));
+  const r = await callClaude(
+    `You are a warm, practical coach for the RISE framework helping a divorced nurse mom build a digital business. She's stuck filling in a specific field. Either ask her 3 short specific questions to spark her thinking, OR give her 3-4 concrete real examples from nursing/healthcare backgrounds to get her started. Be specific, not generic. Max 150 words.`,
+    `Field she is filling in: "${fieldLabel}"\nContext: ${context || "She is a nurse building her first digital product"}`
+  );
+  setNudges(prev => ({...prev, [fieldId]: {loading: false, result: r}}));
 }
 
 // ── ILLUSTRATED HERO BANNERS ──────────────────────────────────────────────────
@@ -93,7 +153,6 @@ function HeroBanner({title,sub,icon,gradient}){
   );
 }
 
-// ── TOOL CARD GRID ────────────────────────────────────────────────────────────
 function ToolGrid({tools,active,onSelect}){
   return(
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:"1.5rem"}}>
@@ -323,9 +382,217 @@ function ReclaimTab({data,setData,onSave}){
           </Sec>
           <button style={btn("fill")} onClick={generate}>Get my Reclaim Blueprint →</button>
           {loading&&<Spinner/>}
-          {result&&<><div style={aiBox}>{result}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Reclaim Blueprint")}>+ Save to library</button></>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Reclaim Blueprint")}>+ Save to library</button></>}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── PRODUCT BUILDER (standalone for cleanliness) ──────────────────────────────
+function ProductBuilder({data, setData, onSave}) {
+  const pf = data.product || {};
+  const setP = (k,v) => setData(d => ({...d, product:{...d.product,[k]:v}}));
+  const [phase, setPhase] = useState('form');
+  const [outline, setOutline] = useState(null);
+  const [outlineLoading, setOutlineLoading] = useState(false);
+  const [outlineError, setOutlineError] = useState("");
+  const [sectionContents, setSectionContents] = useState({});
+  const [sectionLoadings, setSectionLoadings] = useState({});
+  const [nudges, setNudges] = useState({});
+
+  const fmts=["Ebook/PDF Guide","Mini-course (3–5 lessons)","Full online course (6+ modules)","Template pack","Swipe file/Resource vault","Planner/workbook","Audio series","Email course","Workshop recording","Bundle (multiple formats)","Coaching program","Membership/community","Notion template"];
+
+  function doNudge(id, label, ctx) {
+    getNudge(id, label, ctx, setNudges);
+  }
+
+  function getFormatGuide(format) {
+    const f = (format||"").toLowerCase();
+    if(f.includes("course")||f.includes("lesson")||f.includes("mini-course"))
+      return "Write a complete lesson with: Learning Objectives, 3-5 Key Teaching Points with deep explanations, Real Examples from nursing or healthcare life, a Practical Exercise, and a Key Takeaway. This is a real course lesson.";
+    if(f.includes("workbook")||f.includes("planner"))
+      return "Write a complete workbook section with: Brief intro, 3-4 Reflection Prompts with space indicators, 2-3 Practical Exercises, Action Steps, and a closing affirmation. Ready to be formatted in Canva.";
+    if(f.includes("email"))
+      return "Write a complete email lesson: Subject line, personal story hook, main teaching point, practical tip, and a CTA. Warm and direct, like a trusted friend who gets it.";
+    if(f.includes("template")||f.includes("notion"))
+      return "Create the actual template content: headers, sections, prompts, instructions, and example fill-ins. Immediately usable as-is.";
+    return "Write a complete chapter with: an engaging opening paragraph, 3-4 main points with depth and real examples, a practical application section, a chapter summary, and 2-3 reflection questions.";
+  }
+
+  async function generateOutline() {
+    setOutlineLoading(true);
+    setOutlineError("");
+    const sys = `You are a digital product strategist for the RISE framework for divorced nurse moms. Create a complete product structure. Return ONLY valid JSON — no other text, no markdown, no explanation. Use this exact format: {"productName":"...","productType":"...","tagline":"...","targetAudience":"...","transformation":"...","sections":[{"id":1,"title":"...","description":"..."}]} Include 5-8 sections appropriate for the product format.`;
+    const prompt = `Format: ${pf.format||"ebook"}\nProduct idea: ${pf.idea||""}\nBefore state: ${pf.before||""}\nAfter state: ${pf.after||""}\nTarget buyer: ${pf.buyer||""}\nModules outlined: ${pf.modules||""}\nQuick win: ${pf.quickwin||""}\nMisconception: ${pf.misconception||""}\nProduct name: ${pf.hasName==="Yes, I have a name"?pf.name:"(generate a name)"}`;
+    const r = await callClaude(sys, prompt, 1500);
+    try {
+      const clean = r.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+      const parsed = JSON.parse(clean);
+      setOutline(parsed);
+      setPhase('outline');
+    } catch(e) {
+      setOutlineError("Couldn't generate the outline. Please try again.");
+    }
+    setOutlineLoading(false);
+  }
+
+  async function generateSection(section) {
+    setSectionLoadings(prev => ({...prev, [section.id]: true}));
+    const formatGuide = getFormatGuide(pf.format);
+    const sys = `You are writing section "${section.title}" for "${outline?.productName||'a digital product'}" — a ${pf.format||'digital product'} for ${outline?.targetAudience||'divorced nurse moms building digital businesses'}.
+
+${formatGuide}
+
+Voice: Warm, direct, empowering. Like a trusted mentor who has been through real hardship and come out the other side. Write specifically for nurses and women rebuilding after divorce. No generic filler — every sentence earns its place.
+
+IMPORTANT: Write the COMPLETE section. This is final, publish-ready content — not an outline, not a summary, not bullet points. Full prose (or full template/lesson as required by format).`;
+    const prompt = `Section: "${section.title}"\nPurpose: ${section.description}\nTransformation: From "${pf.before||'struggling'}" to "${pf.after||'thriving'}"\nContext: ${pf.modules||""} ${pf.quickwin||""}`;
+    const content = await callClaude(sys, prompt, 3000);
+    setSectionContents(prev => ({...prev, [section.id]: content}));
+    setSectionLoadings(prev => ({...prev, [section.id]: false}));
+  }
+
+  function exportAll() {
+    const generated = (outline?.sections||[]).filter(s => sectionContents[s.id]);
+    if (!generated.length) return;
+    const text = `${outline?.productName||"My Product"}\n${outline?.tagline||""}\n\n${"=".repeat(60)}\n\n` +
+      generated.map(s => `${s.title}\n${"-".repeat(40)}\n\n${stripMarkdown(sectionContents[s.id])}`).join("\n\n" + "=".repeat(60) + "\n\n");
+    navigator.clipboard?.writeText(text).then(() => alert("All sections copied to clipboard!"));
+  }
+
+  function saveAll() {
+    const generated = (outline?.sections||[]).filter(s => sectionContents[s.id]);
+    if (!generated.length) return;
+    const text = `${outline?.productName||"My Product"}\n\n` +
+      generated.map(s => `${s.title}\n\n${stripMarkdown(sectionContents[s.id])}`).join("\n\n---\n\n");
+    onSave(text, "Complete Product");
+  }
+
+  const generatedCount = Object.keys(sectionContents).length;
+
+  if (phase === 'outline' && outline) {
+    return (
+      <div>
+        {/* Product header */}
+        <div style={{background:`linear-gradient(135deg,${C.charcoal},#6b5a59)`,borderRadius:16,padding:"1.5rem",marginBottom:"1.25rem",color:C.white}}>
+          <div style={{fontSize:10,color:C.accent2,letterSpacing:"0.2em",marginBottom:6}}>YOUR PRODUCT</div>
+          <div style={{fontSize:22,fontFamily:"Georgia,serif",marginBottom:4}}>{outline.productName}</div>
+          <div style={{fontSize:13,color:C.accent2,marginBottom:8,fontStyle:"italic"}}>{outline.tagline}</div>
+          <div style={{fontSize:12,color:C.accent2}}>{outline.targetAudience} · {outline.productType}</div>
+          <div style={{marginTop:10,padding:"10px 12px",background:"rgba(255,255,255,0.08)",borderRadius:8,fontSize:12,color:C.accent1}}>
+            Transformation: {outline.transformation}
+          </div>
+        </div>
+
+        {/* Progress */}
+        {generatedCount > 0 && (
+          <div style={{...card,marginBottom:"1rem",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontSize:11,color:C.roseDark,letterSpacing:"0.08em",fontWeight:600}}>{generatedCount} OF {outline.sections?.length} SECTIONS WRITTEN</div>
+              <div style={{background:C.blush,borderRadius:4,height:4,marginTop:6,overflow:"hidden"}}>
+                <div style={{background:C.rose,height:"100%",width:`${(generatedCount/(outline.sections?.length||1))*100}%`,borderRadius:4}}/>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8}}>
+              <button style={btn("out",true)} onClick={exportAll}>Copy all</button>
+              <button style={btn("fill",true)} onClick={saveAll}>Save to library</button>
+            </div>
+          </div>
+        )}
+
+        {/* Sections */}
+        {(outline.sections||[]).map(section => (
+          <div key={section.id} style={{...card,marginBottom:"0.75rem"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:sectionContents[section.id]?12:0}}>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                  <div style={{width:24,height:24,borderRadius:"50%",background:sectionContents[section.id]?C.rose:C.accent1,color:sectionContents[section.id]?C.white:C.roseDark,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>
+                    {sectionContents[section.id]?"✓":section.id}
+                  </div>
+                  <div style={{fontWeight:600,fontSize:14,color:C.charcoal}}>{section.title}</div>
+                </div>
+                <div style={{fontSize:12,color:"#999",lineHeight:1.5,paddingLeft:32}}>{section.description}</div>
+              </div>
+              <div style={{flexShrink:0,marginLeft:12}}>
+                {sectionLoadings[section.id]
+                  ? <div style={{fontSize:12,color:C.rose,fontStyle:"italic"}}>Writing...</div>
+                  : sectionContents[section.id]
+                    ? <button style={btn("out",true)} onClick={()=>generateSection(section)}>Regenerate</button>
+                    : <button style={btn("fill",true)} onClick={()=>generateSection(section)}>Write this section →</button>
+                }
+              </div>
+            </div>
+            {sectionLoadings[section.id] && <Spinner/>}
+            {sectionContents[section.id] && (
+              <div>
+                <div style={{...aiBox,marginTop:12,fontSize:13}}>{stripMarkdown(sectionContents[section.id])}</div>
+                <button style={{...btn("fill",true),marginTop:8}} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(sectionContents[section.id]))}>Copy this section</button>
+              </div>
+            )}
+          </div>
+        ))}
+
+        <div style={{marginTop:"1rem",display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button style={btn("out")} onClick={()=>setPhase('form')}>← Edit product details</button>
+          {generatedCount > 0 && <button style={btn("fill")} onClick={saveAll}>Save all to library →</button>}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={card}>
+      <Sec title="Your Idea & Transformation">
+        <F label="What's your product idea/topic? (even if rough)">
+          <NudgeBox id="pb-idea" label="Product idea/topic" context="She wants to build a digital product for divorced nurse moms" nudges={nudges} onNudge={doNudge}/>
+          <textarea style={ta} value={pf.idea||""} onChange={e=>setP("idea",e.target.value)}/>
+        </F>
+        <F label="Describe the BEFORE state — what your buyer is struggling with">
+          <NudgeBox id="pb-before" label="Before state — what her buyer is struggling with" context={`Product idea: ${pf.idea||""}`} nudges={nudges} onNudge={doNudge}/>
+          <textarea style={ta} value={pf.before||""} onChange={e=>setP("before",e.target.value)}/>
+        </F>
+        <F label="Describe the AFTER state — what will they have/feel/be able to do?">
+          <NudgeBox id="pb-after" label="After state — the transformation this product creates" context={`Product idea: ${pf.idea||""}, Before: ${pf.before||""}`} nudges={nudges} onNudge={doNudge}/>
+          <textarea style={ta} value={pf.after||""} onChange={e=>setP("after",e.target.value)}/>
+        </F>
+      </Sec>
+      <Sec title="Format & Structure">
+        <F label="What format feels right for this product?"><Chips options={fmts} selected={pf.format||""} onToggle={v=>setP("format",v)}/></F>
+        <F label="How would you naturally teach this to a friend? Walk me through it."><textarea style={ta} value={pf.teach||""} onChange={e=>setP("teach",e.target.value)}/></F>
+        <F label="Do you have any existing content that could be repurposed?"><textarea style={ta} value={pf.existing||""} onChange={e=>setP("existing",e.target.value)} placeholder="Blog posts, Instagram content, notes, talks..."/></F>
+      </Sec>
+      <Sec title="Mapping Your Product">
+        <F label="List the main steps, sections, or modules (number them if you can)"><textarea style={{...ta,minHeight:100}} value={pf.modules||""} onChange={e=>setP("modules",e.target.value)}/></F>
+        <F label="What's the BIGGEST misconception people have about this topic?"><textarea style={ta} value={pf.misconception||""} onChange={e=>setP("misconception",e.target.value)}/></F>
+        <F label="What's ONE quick win you can give buyers early to build their confidence?"><textarea style={ta} value={pf.quickwin||""} onChange={e=>setP("quickwin",e.target.value)}/></F>
+      </Sec>
+      <Sec title="Naming & Pricing">
+        <F label="Do you have a product name in mind?"><Chips options={["Yes, I have a name","Help me name it"]} selected={pf.hasName||""} onToggle={v=>setP("hasName",v)}/></F>
+        {pf.hasName==="Yes, I have a name"&&<F label="Your name"><input style={inp} value={pf.name||""} onChange={e=>setP("name",e.target.value)}/></F>}
+        <F label="What's your price point?">
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:6}}>
+            {[{v:"Low ticket $17–37",d:"Impulse buy, first product, audience building"},{v:"Mid ticket $97–197",d:"Comprehensive, deeper commitment"},{v:"High ticket $197–297",d:"Premium transformation, warm audience required"},{v:"Not sure — help me figure it out",d:""}].map(p=>(
+              <div key={p.v} onClick={()=>setP("price",p.v)} style={{padding:"12px",borderRadius:10,border:`1.5px solid ${pf.price===p.v?C.rose:C.blush}`,background:pf.price===p.v?C.cream:C.white,cursor:"pointer"}}>
+                <div style={{fontWeight:600,fontSize:13,color:C.charcoal}}>{p.v}</div>
+                {p.d&&<div style={{fontSize:11,color:"#aaa",marginTop:3}}>{p.d}</div>}
+              </div>
+            ))}
+          </div>
+        </F>
+        <F label="Describe your specific target buyer (the more specific, the better)"><textarea style={ta} value={pf.buyer||""} onChange={e=>setP("buyer",e.target.value)} placeholder="Be as specific as possible..."/></F>
+      </Sec>
+      <Sec title="Launch & Monetisation">
+        <F label="What's your current audience size?"><Chips options={["Just starting 0–500","Growing 500–2,000","Established 2,000–10,000","Large audience 10,000+"]} selected={pf.audience||""} onToggle={v=>setP("audience",v)}/></F>
+        <F label="Which platforms will you use to sell and market?"><Chips options={["Instagram","TikTok","Pinterest","YouTube","Email list","Podcast","Blog","Twitter/X","LinkedIn"]} selected={pf.platforms||[]} onToggle={v=>{const c=pf.platforms||[];setP("platforms",c.includes(v)?c.filter(x=>x!==v):[...c,v]);}} multi/></F>
+        <F label="Honestly — how do you feel about selling your own product?"><textarea style={ta} value={pf.selling||""} onChange={e=>setP("selling",e.target.value)}/></F>
+        <F label="Anything else that will help personalize your product?"><textarea style={ta} value={pf.extra||""} onChange={e=>setP("extra",e.target.value)}/></F>
+      </Sec>
+      {outlineError && <p style={{color:"#c0392b",fontSize:13,marginBottom:10}}>{outlineError}</p>}
+      <button style={btn("fill")} onClick={generateOutline} disabled={outlineLoading}>
+        {outlineLoading ? "Building your product outline..." : "Build my complete product →"}
+      </button>
+      {outlineLoading && <Spinner/>}
     </div>
   );
 }
@@ -335,15 +602,19 @@ function InstallTab({data,setData,onSave}){
   const[tool,setTool]=useState("brand");
   const[loading,setLoading]=useState(false);
   const[result,setResult]=useState("");
-  const bf=data.brand||{};const pf=data.product||{};const idf=data.ideagen||{};
+  const[nudges,setNudges]=useState({});
+  const bf=data.brand||{};const idf=data.ideagen||{};
   const setB=(k,v)=>setData(d=>({...d,brand:{...d.brand,[k]:v}}));
-  const setP=(k,v)=>setData(d=>({...d,product:{...d.product,[k]:v}}));
   const setI=(k,v)=>setData(d=>({...d,ideagen:{...d.ideagen,[k]:v}}));
+
+  function doNudge(id, label, ctx) {
+    getNudge(id, label, ctx, setNudges);
+  }
 
   const tools=[
     {id:"brand",icon:"🎨",name:"Brand Kit",desc:"Build your voice, aesthetic & presence"},
     {id:"idea",icon:"💡",name:"Idea Generator",desc:"Find your unique digital product idea"},
-    {id:"product",icon:"📦",name:"Product Builder",desc:"Build your full product plan"},
+    {id:"product",icon:"📦",name:"Product Builder",desc:"Build & write your complete product"},
   ];
 
   async function generate(){
@@ -357,17 +628,12 @@ function InstallTab({data,setData,onSave}){
       sys=`You are an idea generation coach for the RISE framework for divorced nurse moms building digital businesses. Generate 3-5 specific, compelling digital product ideas based on her skills, life experience, and the problems she solves. Be specific — not generic. Each idea should feel like "only she could make this." Max 500 words.`;
       prompt=`Skills & expertise: ${idf.skills||""}\nLife experiences: ${idf.life||""}\nProblems she helps solve: ${idf.problems||""}`;
     }
-    if(tool==="product"){
-      sys=`You are a product strategist for the RISE framework for divorced nurse moms. Build a complete product plan: refined product name, positioning, full outline, pricing rationale, launch sequence, and first 3 action steps. Warm, specific, actionable. Max 500 words.`;
-      prompt=`Product idea: ${pf.idea||""}\nBefore state: ${pf.before||""}\nAfter state: ${pf.after||""}\nFormat: ${pf.format||""}\nHow to teach: ${pf.teach||""}\nExisting content: ${pf.existing||""}\nModules/steps: ${pf.modules||""}\nMisconception: ${pf.misconception||""}\nQuick win: ${pf.quickwin||""}\nName: ${pf.name||""}\nPrice: ${pf.price||""}\nTarget buyer: ${pf.buyer||""}\nAudience size: ${pf.audience||""}\nPlatforms: ${(pf.platforms||[]).join(", ")}\nFeel about selling: ${pf.selling||""}\nAnything else: ${pf.extra||""}`;
-    }
     const r=await callClaude(sys,prompt);
     setResult(r);
     if(tool==="brand")setData(d=>({...d,installResult:r}));
     setLoading(false);
   }
 
-  const fmts=["Ebook/PDF Guide","Mini-course (3–5 lessons)","Full online course (6+ modules)","Template pack","Swipe file/Resource vault","Planner/workbook","Audio series","Email course","Workshop recording","Bundle (multiple formats)","Coaching program","Membership/community","Notion template"];
   const platforms=["Instagram","TikTok","Pinterest","YouTube","Blog","Website","Email newsletter","Podcast","Twitter/X","Facebook","LinkedIn"];
 
   return(
@@ -378,7 +644,10 @@ function InstallTab({data,setData,onSave}){
       {tool==="brand"&&(
         <div style={card}>
           <Sec title="Brand Kit" sub="Build your voice, aesthetic & presence">
-            <F label="Profile" hint="Your voice, audience, handle, platforms — describe yourself in 3–5 sentences"><textarea style={ta} value={bf.profile||""} onChange={e=>setB("profile",e.target.value)} placeholder="I'm a nurse turned digital creator helping divorced moms..."/></F>
+            <F label="Profile" hint="Your voice, audience, handle, platforms — describe yourself in 3–5 sentences">
+              <NudgeBox id="bk-profile" label="Brand profile — who you are and who you serve" context="Divorced nurse mom building a digital business" nudges={nudges} onNudge={doNudge}/>
+              <textarea style={ta} value={bf.profile||""} onChange={e=>setB("profile",e.target.value)} placeholder="I'm a nurse turned digital creator helping divorced moms..."/>
+            </F>
             <F label="What do you want people to feel when they encounter your brand?"><textarea style={ta} value={bf.feel||""} onChange={e=>setB("feel",e.target.value)}/></F>
             <F label="Who is your dream audience?"><textarea style={ta} value={bf.audience||""} onChange={e=>setB("audience",e.target.value)}/></F>
           </Sec>
@@ -402,64 +671,36 @@ function InstallTab({data,setData,onSave}){
             <F label="Anything else that would help personalize your brand kit?"><textarea style={ta} value={bf.extra||""} onChange={e=>setB("extra",e.target.value)}/></F>
           </Sec>
           <button style={btn("fill")} onClick={generate}>Build my brand kit →</button>
+          {loading&&<Spinner/>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Brand Kit")}>+ Save to library</button></>}
         </div>
       )}
 
       {tool==="idea"&&(
         <div style={card}>
           <Sec title="Idea Generator" sub="Your unfair advantage is hiding in plain sight.">
-            <F label="Your skills & expertise" hint="Think beyond job title. What can you do effortlessly that would feel impossible to someone else?"><textarea style={{...ta,minHeight:100}} value={idf.skills||""} onChange={e=>setI("skills",e.target.value)} placeholder="e.g. I can explain complex medical situations calmly under pressure. I can create order out of complete chaos..."/></F>
-            <F label="Your life experiences" hint="Your past chapters aren't irrelevant — they're your unfair advantage. The harder the chapter, the more valuable the lesson."><textarea style={{...ta,minHeight:100}} value={idf.life||""} onChange={e=>setI("life",e.target.value)} placeholder="e.g. Went through a divorce while working night shifts, raised kids alone, rebuilt my finances from zero..."/></F>
-            <F label="Problems you help solve" hint="What do people come to you for? What do friends DM you about? What do you find yourself explaining again and again?"><textarea style={{...ta,minHeight:100}} value={idf.problems||""} onChange={e=>setI("problems",e.target.value)} placeholder="e.g. How to manage burnout, how to start saving on a nurse's salary, how to leave a toxic relationship..."/></F>
+            <F label="Your skills & expertise" hint="Think beyond your job title. What can you do effortlessly that would feel impossible to someone else?">
+              <NudgeBox id="ig-skills" label="Skills and expertise" context="She is a nurse and divorced mom considering a digital product business" nudges={nudges} onNudge={doNudge}/>
+              <textarea style={{...ta,minHeight:100}} value={idf.skills||""} onChange={e=>setI("skills",e.target.value)} placeholder="e.g. I can explain complex medical situations calmly under pressure. I can create order out of complete chaos..."/>
+            </F>
+            <F label="Your life experiences" hint="Your past chapters aren't irrelevant — they're your unfair advantage. The harder the chapter, the more valuable the lesson.">
+              <NudgeBox id="ig-life" label="Life experiences and past chapters" context={`Her skills: ${idf.skills||""}`} nudges={nudges} onNudge={doNudge}/>
+              <textarea style={{...ta,minHeight:100}} value={idf.life||""} onChange={e=>setI("life",e.target.value)} placeholder="e.g. Went through a divorce while working night shifts, raised kids alone, rebuilt my finances from zero..."/>
+            </F>
+            <F label="Problems you help solve" hint="What do people come to you for? What do friends DM you about? What do you find yourself explaining again and again?">
+              <NudgeBox id="ig-problems" label="Problems she helps solve" context={`Skills: ${idf.skills||""}, Life: ${idf.life||""}`} nudges={nudges} onNudge={doNudge}/>
+              <textarea style={{...ta,minHeight:100}} value={idf.problems||""} onChange={e=>setI("problems",e.target.value)} placeholder="e.g. How to manage burnout, how to start saving on a nurse's salary, how to leave a toxic relationship..."/>
+            </F>
           </Sec>
           <button style={btn("fill")} onClick={generate}>Generate my ideas →</button>
+          {loading&&<Spinner/>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Idea Generator")}>+ Save to library</button></>}
         </div>
       )}
 
       {tool==="product"&&(
-        <div style={card}>
-          <Sec title="Your Idea & Transformation">
-            <F label="What's your product idea/topic? (even if rough)"><textarea style={ta} value={pf.idea||""} onChange={e=>setP("idea",e.target.value)}/></F>
-            <F label="Describe the BEFORE state — what your buyer is struggling with"><textarea style={ta} value={pf.before||""} onChange={e=>setP("before",e.target.value)}/></F>
-            <F label="Describe the AFTER state — what will they have/feel/be able to do?"><textarea style={ta} value={pf.after||""} onChange={e=>setP("after",e.target.value)}/></F>
-          </Sec>
-          <Sec title="Format & Structure">
-            <F label="What format feels right for this product?"><Chips options={fmts} selected={pf.format||""} onToggle={v=>setP("format",v)}/></F>
-            <F label="How would you naturally teach this to a friend? Walk me through it."><textarea style={ta} value={pf.teach||""} onChange={e=>setP("teach",e.target.value)}/></F>
-            <F label="Do you have any existing content that could be repurposed?"><textarea style={ta} value={pf.existing||""} onChange={e=>setP("existing",e.target.value)} placeholder="Blog posts, Instagram content, notes, talks..."/></F>
-          </Sec>
-          <Sec title="Mapping Your Product">
-            <F label="List the main steps, sections, or modules (number them if you can)"><textarea style={{...ta,minHeight:100}} value={pf.modules||""} onChange={e=>setP("modules",e.target.value)}/></F>
-            <F label="What's the BIGGEST misconception people have about this topic?"><textarea style={ta} value={pf.misconception||""} onChange={e=>setP("misconception",e.target.value)}/></F>
-            <F label="What's ONE quick win you can give buyers early to build their confidence?"><textarea style={ta} value={pf.quickwin||""} onChange={e=>setP("quickwin",e.target.value)}/></F>
-          </Sec>
-          <Sec title="Naming & Pricing">
-            <F label="Do you have a product name in mind?"><Chips options={["Yes, I have a name","Help me name it"]} selected={pf.hasName||""} onToggle={v=>setP("hasName",v)}/></F>
-            {pf.hasName==="Yes, I have a name"&&<F label="Your name"><input style={inp} value={pf.name||""} onChange={e=>setP("name",e.target.value)}/></F>}
-            <F label="What's your price point?">
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:6}}>
-                {[{v:"Low ticket $17–37",d:"Impulse buy, first product, audience building"},{v:"Mid ticket $97–197",d:"Comprehensive, deeper commitment"},{v:"High ticket $197–297",d:"Premium transformation, warm audience required"},{v:"Not sure — help me figure it out",d:""}].map(p=>(
-                  <div key={p.v} onClick={()=>setP("price",p.v)} style={{padding:"12px",borderRadius:10,border:`1.5px solid ${pf.price===p.v?C.rose:C.blush}`,background:pf.price===p.v?C.cream:C.white,cursor:"pointer"}}>
-                    <div style={{fontWeight:600,fontSize:13,color:C.charcoal}}>{p.v}</div>
-                    {p.d&&<div style={{fontSize:11,color:"#aaa",marginTop:3}}>{p.d}</div>}
-                  </div>
-                ))}
-              </div>
-            </F>
-            <F label="Describe your specific target buyer (the more specific, the better the plan)"><textarea style={ta} value={pf.buyer||""} onChange={e=>setP("buyer",e.target.value)} placeholder="Be as specific as possible..."/></F>
-          </Sec>
-          <Sec title="Launch & Monetisation">
-            <F label="What's your current audience size?"><Chips options={["Just starting 0–500","Growing 500–2,000","Established 2,000–10,000","Large audience 10,000+"]} selected={pf.audience||""} onToggle={v=>setP("audience",v)}/></F>
-            <F label="Which platforms will you use to sell and market?"><Chips options={["Instagram","TikTok","Pinterest","YouTube","Email list","Podcast","Blog","Twitter/X","LinkedIn"]} selected={pf.platforms||[]} onToggle={v=>{const c=pf.platforms||[];setP("platforms",c.includes(v)?c.filter(x=>x!==v):[...c,v]);}} multi/></F>
-            <F label="Honestly — how do you feel about selling your own product?"><textarea style={ta} value={pf.selling||""} onChange={e=>setP("selling",e.target.value)}/></F>
-            <F label="Anything else that will help personalize your product plan?"><textarea style={ta} value={pf.extra||""} onChange={e=>setP("extra",e.target.value)}/></F>
-          </Sec>
-          <button style={btn("fill")} onClick={generate}>Build my product plan →</button>
-        </div>
+        <ProductBuilder data={data} setData={setData} onSave={onSave}/>
       )}
-
-      {loading&&<Spinner/>}
-      {result&&<><div style={aiBox}>{result}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,tool==="brand"?"Brand Kit":tool==="idea"?"Idea Generator":"Product Plan")}>+ Save to library</button></>}
     </div>
   );
 }
@@ -470,9 +711,13 @@ function SustainTab({data,setData,onSave}){
   const[subtool,setSubtool]=useState("");
   const[loading,setLoading]=useState(false);
   const[result,setResult]=useState("");
+  const[nudges,setNudges]=useState({});
   const f=data.sustain||{};
   const set=(k,v)=>setData(d=>({...d,sustain:{...d.sustain,[k]:v}}));
-  const mf=data.moments||[];
+
+  function doNudge(id, label, ctx) {
+    getNudge(id, label, ctx, setNudges);
+  }
 
   const studioTools=[
     {id:"studio",icon:"✍️",name:"Content Studio",desc:"Generate content that sells, grows & connects"},
@@ -540,6 +785,8 @@ function SustainTab({data,setData,onSave}){
             <F label="Write with me" hint="Tell me what you want to create and I'll make it sound exactly like you."><textarea style={ta} value={f.writeWithMe||""} onChange={e=>set("writeWithMe",e.target.value)} placeholder="No templates or fillers — just your story written properly."/></F>
           </Sec>
           <button style={btn("fill")} onClick={()=>generate(`You are a content strategist and copywriter for the RISE framework for divorced nurse moms building digital businesses. Write powerful, specific, conversion-worthy content. No generic filler — every word should feel like it came from a real woman who's been through hard things and is ready to rise. Match the requested tone exactly. Max 500 words.`,`Request: ${f.quickStart||f.writeWithMe||"general content"}\nType: ${f.contentType||""}\nTone: ${f.tone||""}\nNiche: ${f.niche||""}\nAudience: ${f.audience||"divorced nurse moms"}\nProduct: ${f.product||""}\nPlatform: ${f.platform||""}`)}>Generate content →</button>
+          {loading&&<Spinner/>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Content Studio")}>+ Save to library</button></>}
         </div>
       )}
 
@@ -553,7 +800,10 @@ function SustainTab({data,setData,onSave}){
 
           {subtool==="voicemirror"&&<div style={card}>
             <Sec title="Brand Voice Mirror" sub="Analyse my writing and capture my exact voice.">
-              <F label="Paste writing samples"><textarea style={{...ta,minHeight:120}} value={f.voiceWriting||""} onChange={e=>set("voiceWriting",e.target.value)} placeholder="Paste 2-3 captions, emails, or posts you've written..."/></F>
+              <F label="Paste writing samples">
+                <NudgeBox id="vm-writing" label="Writing samples to analyse" context="She needs to paste examples of her own writing to get her brand voice mirrored" nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,minHeight:120}} value={f.voiceWriting||""} onChange={e=>set("voiceWriting",e.target.value)} placeholder="Paste 2-3 captions, emails, or posts you've written..."/>
+              </F>
               <F label="Niche (optional)"><input style={inp} value={f.voiceNiche||""} onChange={e=>set("voiceNiche",e.target.value)}/></F>
               <F label="Audience (optional)"><input style={inp} value={f.voiceAudience||""} onChange={e=>set("voiceAudience",e.target.value)}/></F>
             </Sec>
@@ -562,10 +812,19 @@ function SustainTab({data,setData,onSave}){
 
           {subtool==="originstory"&&<div style={card}>
             <Sec title="Origin Story Builder" sub="Turn your journey into 5 ready-to-use story formats.">
-              <F label="Your before"><textarea style={ta} value={f.sBefore||""} onChange={e=>set("sBefore",e.target.value)}/></F>
-              <F label="The turning point"><textarea style={ta} value={f.sTurn||""} onChange={e=>set("sTurn",e.target.value)}/></F>
+              <F label="Your before">
+                <NudgeBox id="os-before" label="Your 'before' state — where you started" context="She is building her origin story for her brand" nudges={nudges} onNudge={doNudge}/>
+                <textarea style={ta} value={f.sBefore||""} onChange={e=>set("sBefore",e.target.value)}/>
+              </F>
+              <F label="The turning point">
+                <NudgeBox id="os-turn" label="The turning point in her story" context={`Her before: ${f.sBefore||""}`} nudges={nudges} onNudge={doNudge}/>
+                <textarea style={ta} value={f.sTurn||""} onChange={e=>set("sTurn",e.target.value)}/>
+              </F>
               <F label="Your after"><textarea style={ta} value={f.sAfter||""} onChange={e=>set("sAfter",e.target.value)}/></F>
-              <F label="Why you do what you do"><textarea style={ta} value={f.sWhy||""} onChange={e=>set("sWhy",e.target.value)}/></F>
+              <F label="Why you do what you do">
+                <NudgeBox id="os-why" label="Why she does what she does — her deeper purpose" context={`Before: ${f.sBefore||""}, After: ${f.sAfter||""}`} nudges={nudges} onNudge={doNudge}/>
+                <textarea style={ta} value={f.sWhy||""} onChange={e=>set("sWhy",e.target.value)}/>
+              </F>
               <F label="Mission (optional)"><input style={inp} value={f.sMission||""} onChange={e=>set("sMission",e.target.value)}/></F>
               <F label="Niche (optional)"><input style={inp} value={f.sNiche||""} onChange={e=>set("sNiche",e.target.value)}/></F>
             </Sec>
@@ -574,8 +833,14 @@ function SustainTab({data,setData,onSave}){
 
           {subtool==="pillars"&&<div style={card}>
             <Sec title="Content Pillars" sub="Build pillars rooted in your actual lived experience.">
-              <F label="Your life experiences & chapters" hint="Career pivots, rock bottom moments, wins, losses — be honest"><textarea style={{...ta,minHeight:100}} value={f.pLife||""} onChange={e=>set("pLife",e.target.value)}/></F>
-              <F label="Your skills & expertise" hint="What you know well, have done for years, what people come to you for"><textarea style={ta} value={f.pSkills||""} onChange={e=>set("pSkills",e.target.value)}/></F>
+              <F label="Your life experiences & chapters" hint="Career pivots, rock bottom moments, wins, losses — be honest">
+                <NudgeBox id="cp-life" label="Life experiences and chapters" context="She is a divorced nurse mom building a digital business" nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,minHeight:100}} value={f.pLife||""} onChange={e=>set("pLife",e.target.value)}/>
+              </F>
+              <F label="Your skills & expertise" hint="What you know well, have done for years, what people come to you for">
+                <NudgeBox id="cp-skills" label="Skills and expertise for content pillars" context={`Her life: ${f.pLife||""}`} nudges={nudges} onNudge={doNudge}/>
+                <textarea style={ta} value={f.pSkills||""} onChange={e=>set("pSkills",e.target.value)}/>
+              </F>
               <F label="Niche"><input style={inp} value={f.pNiche||""} onChange={e=>set("pNiche",e.target.value)}/></F>
               <F label="Audience"><input style={inp} value={f.pAudience||""} onChange={e=>set("pAudience",e.target.value)}/></F>
               <F label="Offer"><input style={inp} value={f.pOffer||""} onChange={e=>set("pOffer",e.target.value)}/></F>
@@ -585,18 +850,30 @@ function SustainTab({data,setData,onSave}){
 
           {subtool==="angles"&&<div style={card}>
             <Sec title="Story Angle Generator" sub="5 story angles for any topic or offer.">
-              <F label="Topic/offer" hint="e.g. Launching my first digital product"><input style={inp} value={f.angTopic||""} onChange={e=>set("angTopic",e.target.value)}/></F>
+              <F label="Topic/offer" hint="e.g. Launching my first digital product">
+                <NudgeBox id="sa-topic" label="Topic or offer to generate story angles for" context="She is a divorced nurse mom building a digital business" nudges={nudges} onNudge={doNudge}/>
+                <input style={{...inp,marginTop:6}} value={f.angTopic||""} onChange={e=>set("angTopic",e.target.value)}/>
+              </F>
               <F label="Niche"><input style={inp} value={f.angNiche||""} onChange={e=>set("angNiche",e.target.value)}/></F>
               <F label="Audience"><input style={inp} value={f.angAudience||""} onChange={e=>set("angAudience",e.target.value)}/></F>
-              <F label="Your known moments/experiences related to this topic" hint="Real moments that connect to this topic"><textarea style={ta} value={f.angMoments||""} onChange={e=>set("angMoments",e.target.value)}/></F>
+              <F label="Your known moments/experiences related to this topic" hint="Real moments that connect to this topic">
+                <NudgeBox id="sa-moments" label="Real personal moments related to this topic" context={`Topic: ${f.angTopic||""}`} nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,marginTop:6}} value={f.angMoments||""} onChange={e=>set("angMoments",e.target.value)}/>
+              </F>
             </Sec>
             <button style={btn("fill")} onClick={()=>generate(`You are a story strategist for the RISE framework. Generate 5 distinct story angles for the given topic. Each angle: the hook, the narrative thread, why it resonates with the audience, and the CTA. Make each angle feel personal and non-generic. Max 500 words.`,`Topic: ${f.angTopic||""}\nNiche: ${f.angNiche||""}\nAudience: ${f.angAudience||""}\nMoments: ${f.angMoments||""}`)}>Generate story angles →</button>
           </div>}
 
           {subtool==="caption"&&<div style={card}>
             <Sec title="Transformation Caption Builder" sub="Before–shift–after caption that sells the journey.">
-              <F label="The before"><textarea style={ta} value={f.capBefore||""} onChange={e=>set("capBefore",e.target.value)}/></F>
-              <F label="The shift"><textarea style={ta} value={f.capShift||""} onChange={e=>set("capShift",e.target.value)}/></F>
+              <F label="The before">
+                <NudgeBox id="tc-before" label="The 'before' state for this caption" context="She is writing a transformation caption for social media" nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,marginTop:6}} value={f.capBefore||""} onChange={e=>set("capBefore",e.target.value)}/>
+              </F>
+              <F label="The shift">
+                <NudgeBox id="tc-shift" label="The shift or turning point" context={`Before: ${f.capBefore||""}`} nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,marginTop:6}} value={f.capShift||""} onChange={e=>set("capShift",e.target.value)}/>
+              </F>
               <F label="The after"><textarea style={ta} value={f.capAfter||""} onChange={e=>set("capAfter",e.target.value)}/></F>
               <F label="Your offer (optional)"><input style={inp} value={f.capOffer||""} onChange={e=>set("capOffer",e.target.value)}/></F>
               <F label="Tone (optional)"><Chips options={tones} selected={f.capTone||""} onToggle={v=>set("capTone",v)}/></F>
@@ -607,8 +884,14 @@ function SustainTab({data,setData,onSave}){
           {subtool==="scripts"&&<div style={card}>
             <Sec title="Selling Story Scripts" sub="5-part story sequences for IG, email, or TikTok.">
               <F label="Your offer"><textarea style={ta} value={f.scrOffer||""} onChange={e=>set("scrOffer",e.target.value)}/></F>
-              <F label="Before state (audience's starting point)"><textarea style={ta} value={f.scrBefore||""} onChange={e=>set("scrBefore",e.target.value)}/></F>
-              <F label="After state (the transformation)"><textarea style={ta} value={f.scrAfter||""} onChange={e=>set("scrAfter",e.target.value)}/></F>
+              <F label="Before state (audience's starting point)">
+                <NudgeBox id="ss-before" label="Audience before state for selling story" context={`Offer: ${f.scrOffer||""}`} nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,marginTop:6}} value={f.scrBefore||""} onChange={e=>set("scrBefore",e.target.value)}/>
+              </F>
+              <F label="After state (the transformation)">
+                <NudgeBox id="ss-after" label="Audience after state — the transformation" context={`Offer: ${f.scrOffer||""}, Before: ${f.scrBefore||""}`} nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,marginTop:6}} value={f.scrAfter||""} onChange={e=>set("scrAfter",e.target.value)}/>
+              </F>
               <F label="Niche"><input style={inp} value={f.scrNiche||""} onChange={e=>set("scrNiche",e.target.value)}/></F>
               <F label="Format"><Chips options={["IG story series","Email series","TikTok series"]} selected={f.scrFormat||""} onToggle={v=>set("scrFormat",v)}/></F>
             </Sec>
@@ -618,7 +901,10 @@ function SustainTab({data,setData,onSave}){
           {subtool==="objection"&&<div style={card}>
             <Sec title="Objection Story Responder" sub="Answer sales objections with personal stories, not logic.">
               <F label="The objection"><input style={inp} value={f.objObj||""} onChange={e=>set("objObj",e.target.value)} placeholder="e.g. I don't have enough time, I'm not an expert, it won't work for me..."/></F>
-              <F label="Your relevant personal story" hint="The real moment that contradicts this objection"><textarea style={ta} value={f.objStory||""} onChange={e=>set("objStory",e.target.value)}/></F>
+              <F label="Your relevant personal story" hint="The real moment that contradicts this objection">
+                <NudgeBox id="obj-story" label="Personal story that contradicts this objection" context={`Objection: ${f.objObj||""}`} nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,marginTop:6}} value={f.objStory||""} onChange={e=>set("objStory",e.target.value)}/>
+              </F>
               <F label="Your offer"><input style={inp} value={f.objOffer||""} onChange={e=>set("objOffer",e.target.value)}/></F>
             </Sec>
             <button style={btn("fill")} onClick={()=>generate(`You are a sales story coach for the RISE framework. Write a story-based response to the sales objection. Don't use logic or bullet points — use story. Make it personal, specific, and powerful. The reader should feel seen, not sold to. Max 300 words.`,`Objection: ${f.objObj||""}\nPersonal story: ${f.objStory||""}\nOffer: ${f.objOffer||""}`)}>Write story responses →</button>
@@ -626,7 +912,10 @@ function SustainTab({data,setData,onSave}){
 
           {subtool==="uniqueness"&&<div style={card}>
             <Sec title="Only I Could Write This" sub="Score and rewrite content for maximum personal specificity.">
-              <F label="Your content"><textarea style={{...ta,minHeight:120}} value={f.uniContent||""} onChange={e=>set("uniContent",e.target.value)} placeholder="Paste your caption, email, or post..."/></F>
+              <F label="Your content">
+                <NudgeBox id="uni-content" label="Content to make more personal and specific" context="She wants to make her content uniquely hers" nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,minHeight:120,marginTop:6}} value={f.uniContent||""} onChange={e=>set("uniContent",e.target.value)} placeholder="Paste your caption, email, or post..."/>
+              </F>
               <F label="Context about you (optional)"><textarea style={ta} value={f.uniContext||""} onChange={e=>set("uniContext",e.target.value)} placeholder="Any personal details that should be in this content..."/></F>
             </Sec>
             <button style={btn("fill")} onClick={()=>generate(`You are a content specificity coach for the RISE framework. Score the content 1-10 on how uniquely personal it is. Then rewrite it with maximum specificity — replace every generic phrase with a real, personal detail. Show before/after. Max 400 words.`,`Content: ${f.uniContent||""}\nContext: ${f.uniContext||""}`)}>Filter for uniqueness →</button>
@@ -643,7 +932,10 @@ function SustainTab({data,setData,onSave}){
 
           {subtool==="moments"&&<div style={card}>
             <Sec title="Brand Moment Library" sub="Save your real moments. Generate content from any of them.">
-              <F label="Add a brand moment" hint="A real experience, story, win, lesson, turning point — anything raw and real"><textarea style={ta} value={f.newMoment||""} onChange={e=>set("newMoment",e.target.value)} placeholder="e.g. The day I sat in my car after a 12-hour shift and realized I couldn't keep doing this..."/></F>
+              <F label="Add a brand moment" hint="A real experience, story, win, lesson, turning point — anything raw and real">
+                <NudgeBox id="bm-moment" label="A brand moment — real story, win, lesson, or turning point" context="She is building a library of personal brand moments to use in content" nudges={nudges} onNudge={doNudge}/>
+                <textarea style={{...ta,marginTop:6}} value={f.newMoment||""} onChange={e=>set("newMoment",e.target.value)} placeholder="e.g. The day I sat in my car after a 12-hour shift and realized I couldn't keep doing this..."/>
+              </F>
               <button style={btn("out",true)} onClick={addMoment}>+ Save moment</button>
               {(data.moments||[]).length>0&&<>
                 <div style={{marginTop:"1.25rem",marginBottom:8,fontSize:11,color:C.roseDark,letterSpacing:"0.1em",fontWeight:600}}>YOUR MOMENTS</div>
@@ -667,7 +959,7 @@ function SustainTab({data,setData,onSave}){
           </div>}
 
           {loading&&<Spinner/>}
-          {result&&subtool!=="moments"&&<><div style={aiBox}>{result}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,`Sustain — ${storySubtools.find(t=>t.id===subtool)?.label||"Story"}`)}>+ Save to library</button></>}
+          {result&&subtool!=="moments"&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,`Sustain — ${storySubtools.find(t=>t.id===subtool)?.label||"Story"}`)}>+ Save to library</button></>}
         </div>
       )}
 
@@ -680,12 +972,9 @@ function SustainTab({data,setData,onSave}){
           </Sec>
           <button style={btn("fill")} onClick={()=>generate(`You are a content repurposing expert for the RISE framework. Take the content and fully rebuild it in the new format. Don't start from scratch — extract the real voice, ideas, and story. Sound exactly like the original person. Be specific. No generic fillers. Max 500 words.`,`From: ${f.repFrom||""}\nTo: ${f.repTo||""}\nContent: ${f.repContent||""}`)}>Repurpose my content →</button>
           {loading&&<Spinner/>}
-          {result&&<><div style={aiBox}>{result}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,`Repurposed → ${f.repTo||""}`)}>+ Save to library</button></>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,`Repurposed → ${f.repTo||""}`)}>+ Save to library</button></>}
         </div>
       )}
-
-      {tool!=="repurpose"&&tool!=="story"&&loading&&<Spinner/>}
-      {tool==="studio"&&result&&<><div style={aiBox}>{result}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Content Studio")}>+ Save to library</button></>}
     </div>
   );
 }
@@ -744,7 +1033,7 @@ function ExpandTab({data,setData,onSave}){
           </Sec>
           <button style={btn("fill")} onClick={generate}>Get my Expand coaching →</button>
           {loading&&<Spinner/>}
-          {result&&<><div style={aiBox}>{result}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Expand Coaching")}>+ Save to library</button></>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Expand Coaching")}>+ Save to library</button></>}
         </div>
       </>}
       {view==="journal"&&(
@@ -755,7 +1044,7 @@ function ExpandTab({data,setData,onSave}){
               <F label="Tag this entry"><Chips options={["General","Imposter syndrome","Procrastination","Comparison","Self-doubt","Overwhelm","Motivation","Win","Gratitude"]} selected={jTag} onToggle={setJTag}/></F>
               <button style={btn("fill")} onClick={addEntry} disabled={!entry.trim()}>Add entry + get reflection →</button>
               {jLoading&&<Spinner/>}
-              {jRef&&<div style={{...aiBox,borderLeft:`3px solid ${C.gold}`}}><div style={{fontSize:10,color:C.gold,letterSpacing:"0.1em",marginBottom:6}}>YOUR REFLECTION</div>{jRef}</div>}
+              {jRef&&<div style={{...aiBox,borderLeft:`3px solid ${C.gold}`}}><div style={{fontSize:10,color:C.gold,letterSpacing:"0.1em",marginBottom:6}}>YOUR REFLECTION</div>{stripMarkdown(jRef)}</div>}
             </Sec>
           </div>
           {(data.journal||[]).map((e,i)=>(
@@ -765,7 +1054,7 @@ function ExpandTab({data,setData,onSave}){
                 <button style={{background:"transparent",border:"none",color:"#ccc",cursor:"pointer",fontSize:16}} onClick={()=>setData(d=>({...d,journal:(d.journal||[]).filter((_,j)=>j!==i)}))}>×</button>
               </div>
               <p style={{fontSize:13,color:C.charcoal,lineHeight:1.7,margin:"0 0 10px"}}>{e.entry}</p>
-              {e.reflection&&<div style={{background:C.cream,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.charcoal,lineHeight:1.6,borderLeft:`2px solid ${C.gold}`}}><span style={{fontSize:10,color:C.gold,letterSpacing:"0.08em"}}>REFLECTION · </span>{e.reflection}</div>}
+              {e.reflection&&<div style={{background:C.cream,borderRadius:8,padding:"10px 12px",fontSize:12,color:C.charcoal,lineHeight:1.6,borderLeft:`2px solid ${C.gold}`}}><span style={{fontSize:10,color:C.gold,letterSpacing:"0.08em"}}>REFLECTION · </span>{stripMarkdown(e.reflection)}</div>}
             </div>
           ))}
         </div>
@@ -832,9 +1121,7 @@ function PowerToolsTab({data,setData,onSave}){
         <div style={card}>
           <Sec title="Where to Sell" sub="The right platform changes everything.">
             <F label="What are you selling?"><Chips options={fmts} selected={wf.product||""} onToggle={v=>setW("product",v)}/></F>
-            <F label="Price point">
-              <Chips options={["Under $27","$27–47","$47–97","$97–197","$197–497","$497+"]} selected={wf.price||""} onToggle={v=>setW("price",v)}/>
-            </F>
+            <F label="Price point"><Chips options={["Under $27","$27–47","$47–97","$97–197","$197–497","$497+"]} selected={wf.price||""} onToggle={v=>setW("price",v)}/></F>
             <F label="Size of audience"><Chips options={["Starting out 0–1k","Growing 1–10k","Established 10–50k","Large 50k+"]} selected={wf.audience||""} onToggle={v=>setW("audience",v)}/></F>
             <F label="Visibility"><Chips options={["Completely faceless","Hybrid","Face of business","Unsure"]} selected={wf.visibility||""} onToggle={v=>setW("visibility",v)}/></F>
             <F label="Experience level"><Chips options={["Beginner","Sold a few things","Experienced seller","Scaling"]} selected={wf.experience||""} onToggle={v=>setW("experience",v)}/></F>
@@ -844,7 +1131,7 @@ function PowerToolsTab({data,setData,onSave}){
       )}
 
       {loading&&<Spinner/>}
-      {result&&<><div style={aiBox}>{result}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,tool==="price"?"Price Strategy":"Where to Sell")}>+ Save to library</button></>}
+      {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,tool==="price"?"Price Strategy":"Where to Sell")}>+ Save to library</button></>}
     </div>
   );
 }
@@ -891,7 +1178,7 @@ function PinterestTab({onSave}){
         </>}
         <button style={btn("fill")} onClick={generate}>Create my Pinterest content →</button>
         {loading&&<Spinner/>}
-        {result&&<><div style={aiBox}>{result}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Pinterest")}>+ Save to library</button></>}
+        {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Pinterest")}>+ Save to library</button></>}
       </div>
     </div>
   );
@@ -989,7 +1276,6 @@ export default function App(){
 
   return(
     <div style={{display:"flex",minHeight:"100vh",background:C.pale,fontFamily:"Georgia,serif"}}>
-      {/* SIDEBAR */}
       <div style={{width:SIDE_W,minHeight:"100vh",background:C.charcoal,display:"flex",flexDirection:"column",transition:"width 0.25s ease",flexShrink:0,position:"relative",zIndex:10}}>
         <div style={{padding:sideOpen?"1.25rem 1rem":"1rem 0",borderBottom:`1px solid rgba(255,255,255,0.08)`,textAlign:sideOpen?"left":"center"}}>
           {sideOpen
@@ -1026,13 +1312,12 @@ export default function App(){
         </button>
       </div>
 
-      {/* MAIN */}
       <div style={{flex:1,overflow:"auto"}}>
         <div style={{maxWidth:760,margin:"0 auto",padding:"1.75rem 1.5rem"}}>
           {nav==="home"&&<HomeTab user={user} data={data} setNav={setNav} saved={saved}/>}
           {nav==="reclaim"&&<ReclaimTab data={data} setData={setData} onSave={saveItem}/>}
           {nav==="install"&&<InstallTab data={data} setData={setData} onSave={saveItem}/>}
-              {nav==="sustain"&&<SustainTab data={data} setData={setData} onSave={saveItem}/>}
+          {nav==="sustain"&&<SustainTab data={data} setData={setData} onSave={saveItem}/>}
           {nav==="expand"&&<ExpandTab data={data} setData={setData} onSave={saveItem}/>}
           {nav==="power"&&<PowerToolsTab data={data} setData={setData} onSave={saveItem}/>}
           {nav==="pinterest"&&<PinterestTab onSave={saveItem}/>}
@@ -1041,4 +1326,4 @@ export default function App(){
       </div>
     </div>
   );
-} 
+}
