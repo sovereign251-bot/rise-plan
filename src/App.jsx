@@ -789,6 +789,7 @@ function SustainTab({data,setData,onSave}){
   const[nudges,setNudges]=useState({});
   const[calLoading,setCalLoading]=useState(false);
   const[calDays,setCalDays]=useState([]);
+  const[profileOpen,setProfileOpen]=useState(true);
   const f=data.sustain||{};
   const set=(k,v)=>setData(d=>({...d,sustain:{...d.sustain,[k]:v}}));
 
@@ -878,31 +879,40 @@ function SustainTab({data,setData,onSave}){
 
   async function generateCalendar(){
     setCalLoading(true);setCalDays([]);
-    const sys=`You are a content calendar strategist for divorced nurse moms building digital businesses. Create a 30-day content calendar that mixes selling, growth, entertainment, education, trust-building, and inspiration content across the month.
+    const sys=`You are a content calendar strategist for divorced nurse moms building digital businesses. Create a 30-day content calendar that strategically distributes ALL SIX proven content frameworks across the month for maximum variety and results.
 
-For EACH of the 30 days, output EXACTLY this format — nothing else:
-DAY [number]
-HOOK: [One punchy scroll-stopping line, under 10 words]
-CAPTION: [3-4 sentences: relatable opener + key message + CTA. Max 60 words total.]
+FRAMEWORK DISTRIBUTION — follow this exactly:
+Days 1–5: PAIN-TO-HOOK — viral hooks under 10 words that hit a raw, specific pain point
+Days 6–10: NARROW CONTENT — hyper-specific angle almost nobody else is covering; feels written for one person
+Days 11–15: REEL SCRIPT — 30-second video structured as Hook → Tension → Insight → CTA
+Days 16–20: SOCIAL PROOF — before/after/turning point structure + marketing phrases that sell without selling
+Days 21–25: SAVEABLE CAROUSEL — each "slide" is one lightbulb reframe that could stand alone as its own post
+Days 26–30: CTA GENERATOR — polarizing "Comment X if you are Y trying to Z" that filters in dream buyers only
+
+For EACH day output EXACTLY this format:
+DAY [number] — [FRAMEWORK NAME]
+HOOK: [Scroll-stopping opener under 10 words]
+CAPTION: [3–4 sentences: relatable opener + value + CTA. Max 60 words.]
 SCRIPT:
 HOOK: [Same or stronger hook]
-TENSION: [Build the pain — 1 short sentence]
-INSIGHT: [The reframe — 1 short sentence]
+TENSION: [Build the pain — 1 sentence]
+INSIGHT: [The reframe — 1 sentence]
 CTA: Comment [KEYWORD] if you are [specific person] trying to [specific outcome]
 ---
 
-Output all 30 days in order. No extra text, no commentary, no explanations. Just the 30 days.`;
-    const prompt=`Niche: ${f.calNiche||f.niche||"nurse entrepreneurs"}\nAudience: ${f.calAudience||f.audience||"divorced nurse moms building digital businesses"}\nOffer: ${f.calOffer||f.product||""}\nPlatform: ${f.calPlatform||"Instagram/TikTok"}\nTone: ${f.calTone||f.tone||"warm and real"}\nPersonal themes/stories to weave in: ${f.calThemes||""}`;
+Output all 30 days in order. No extra text. No commentary. Just the 30 days.`;
+    const prompt=`Niche: ${f.niche||"nurse entrepreneurs"}\nAudience: ${f.audience||"divorced nurse moms building digital businesses"}\nOffer: ${f.product||""}\nPlatform: ${f.platform||"Instagram/TikTok"}\nTone: ${f.tone||"warm and real"}\nPersonal themes/stories to weave in: ${f.calThemes||""}`;
     const raw=await callClaude(sys,prompt,4000);
     const blocks=raw.split(/\n---+\n?/).filter(b=>b.trim());
     const days=blocks.map(block=>{
-      const dayMatch=block.match(/DAY\s*(\d+)/i);
+      const dayMatch=block.match(/DAY\s*(\d+)(?:\s*[—\-]+\s*(.+))?/i);
       if(!dayMatch)return null;
       const hookMatch=block.match(/^HOOK:\s*(.+)/im);
       const captionMatch=block.match(/CAPTION:\s*([\s\S]+?)(?=\nSCRIPT:|---)/i);
       const scriptMatch=block.match(/SCRIPT:\s*([\s\S]+?)$/i);
       return{
         day:parseInt(dayMatch[1]),
+        framework:dayMatch[2]?.trim()||"",
         hook:hookMatch?.[1]?.trim()||"",
         caption:captionMatch?.[1]?.trim()||"",
         script:scriptMatch?.[1]?.trim()||"",
@@ -919,11 +929,39 @@ Output all 30 days in order. No extra text, no commentary, no explanations. Just
   return(
     <div>
       <HeroBanner title="Sustain Your Business" sub="Build the habits, income, and presence that create lasting stability — and become the woman who trusts herself to maintain them." icon="✨"/>
+
+      {/* ── SHARED CONTEXT CARD ── */}
+      <div style={{...card,marginBottom:"1rem",border:`1px solid ${C.blush}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}} onClick={()=>setProfileOpen(p=>!p)}>
+          <div>
+            <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,textTransform:"uppercase"}}>Your Context</div>
+            <div style={{fontSize:12,color:"#aaa",marginTop:2}}>
+              {profileOpen?"Set once — used by Content Studio, 30-Day Calendar, and all tools below"
+                :`${f.niche||"No niche set"} · ${f.tone||"No tone set"}`}
+            </div>
+          </div>
+          <div style={{fontSize:18,color:C.rose,userSelect:"none"}}>{profileOpen?"∧":"∨"}</div>
+        </div>
+        {profileOpen&&(
+          <div style={{marginTop:"1.25rem"}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
+              <F label="Your niche"><input style={inp} value={f.niche||""} onChange={e=>set("niche",e.target.value)} placeholder="e.g. Nurse entrepreneurs, financial freedom after divorce..."/></F>
+              <F label="Target audience"><input style={inp} value={f.audience||""} onChange={e=>set("audience",e.target.value)} placeholder="e.g. Divorced moms who are nurses wanting digital income..."/></F>
+              <F label="Your product or offer"><input style={inp} value={f.product||""} onChange={e=>set("product",e.target.value)} placeholder="e.g. My ebook on paying off debt on a nurse's salary"/></F>
+              <F label="Platform"><input style={inp} value={f.platform||""} onChange={e=>set("platform",e.target.value)} placeholder="e.g. Instagram, TikTok..."/></F>
+            </div>
+            <F label="Tone">
+              <Chips options={tones} selected={f.tone||""} onToggle={v=>set("tone",v)}/>
+            </F>
+          </div>
+        )}
+      </div>
+
       <ToolGrid tools={studioTools} active={tool} onSelect={t=>{setTool(t);setSubtool("");setResult("");}}/>
 
       {tool==="studio"&&(
         <div style={card}>
-          <Sec title="Content Studio" sub="Six proven frameworks that grow audiences, build trust, and convert viewers into customers.">
+          <Sec title="Content Studio" sub="Pick a framework → add your topic or story → generate one high-converting piece.">
             <F label="1. Choose your content framework">
               <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,marginTop:4}}>
                 {frameworks.map(fw=>(
@@ -940,19 +978,19 @@ Output all 30 days in order. No extra text, no commentary, no explanations. Just
                 ))}
               </div>
             </F>
-            <F label="2. Your niche"><input style={inp} value={f.niche||""} onChange={e=>set("niche",e.target.value)} placeholder="e.g. Nurse entrepreneurs, financial freedom after divorce..."/></F>
-            <F label="3. Your dream audience"><input style={inp} value={f.audience||""} onChange={e=>set("audience",e.target.value)} placeholder="e.g. Divorced moms who are nurses wanting to build a digital income..."/></F>
-            <F label="4. Your product or offer (if any)"><input style={inp} value={f.product||""} onChange={e=>set("product",e.target.value)} placeholder="e.g. My ebook on paying off debt on a nurse's salary"/></F>
-            <F label="5. Platform"><Chips options={["Instagram","TikTok","Pinterest","YouTube","Email","LinkedIn"]} selected={f.platform||""} onToggle={v=>set("platform",v)}/></F>
-            <F label="6. Tone"><Chips options={tones} selected={f.tone||""} onToggle={v=>set("tone",v)}/></F>
             {f.framework==="social-proof"
-              ?<F label="7. Paste your testimonial, result or DM" hint="Paste it exactly as they wrote/said it — the rawer the better">
+              ?<F label="2. Paste your testimonial, result or DM" hint="Paste it exactly as they wrote/said it — the rawer the better">
                 <textarea style={{...ta,minHeight:100}} value={f.testimonial||""} onChange={e=>set("testimonial",e.target.value)} placeholder="e.g. 'I literally cried when I paid off my credit card. I never thought a nurse's salary could do that...'"/>
               </F>
-              :<F label="7. Topic, angle or context" hint="What's this content about? Any specific story, number or detail makes it 10x better">
+              :<F label="2. Topic, angle or context" hint="What's this content about? Any specific story, number or detail makes it 10x better">
                 <textarea style={ta} value={f.writeWithMe||""} onChange={e=>set("writeWithMe",e.target.value)} placeholder="e.g. How I paid off $8k in debt on a nurse's salary while raising 2 kids alone..."/>
               </F>
             }
+            {(!f.niche&&!f.audience)&&(
+              <div style={{background:C.cream,border:`1px solid ${C.blush}`,borderRadius:10,padding:"10px 14px",fontSize:12,color:C.roseDark,marginTop:4}}>
+                💡 Fill in your <strong>niche, audience & tone</strong> in the context card above for better results.
+              </div>
+            )}
           </Sec>
           <button style={btn("fill")} onClick={()=>{const{sys,prompt}=getFrameworkPrompts(f.framework||"pain-hook");const fw=frameworks.find(f2=>f2.id===(f.framework||"pain-hook"));generate(sys,prompt,`Content Studio — ${fw?.name||"Content"}`)}}>Generate content →</button>
           {loading&&<Spinner/>}
@@ -1148,13 +1186,24 @@ Output all 30 days in order. No extra text, no commentary, no explanations. Just
 
       {tool==="calendar"&&(
         <div style={card}>
-          <Sec title="30-Day Content Calendar" sub="Your complete month of hooks, captions, and reel scripts — 3 columns, copy-paste ready for Canva.">
-            <F label="Your niche"><input style={inp} value={f.calNiche||""} onChange={e=>set("calNiche",e.target.value)} placeholder="e.g. Nurse entrepreneurs, financial freedom after divorce..."/></F>
-            <F label="Your dream audience"><input style={inp} value={f.calAudience||""} onChange={e=>set("calAudience",e.target.value)} placeholder="e.g. Divorced moms who are nurses wanting digital income..."/></F>
-            <F label="Your offer or product"><input style={inp} value={f.calOffer||""} onChange={e=>set("calOffer",e.target.value)} placeholder="e.g. My ebook on paying off debt on a nurse's salary"/></F>
-            <F label="Platform"><Chips options={["Instagram","TikTok","Both"]} selected={f.calPlatform||""} onToggle={v=>set("calPlatform",v)}/></F>
-            <F label="Tone"><Chips options={tones} selected={f.calTone||""} onToggle={v=>set("calTone",v)}/></F>
-            <F label="Personal themes or stories to weave in" hint="The more specific, the better — real moments make content convert"><textarea style={ta} value={f.calThemes||""} onChange={e=>set("calThemes",e.target.value)} placeholder="e.g. my divorce story, paying off $8k, night shift struggles, building my first digital product, the day I almost quit..."/></F>
+          <Sec title="30-Day Content Calendar" sub="All 6 content frameworks distributed across 30 days — hooks, captions & scripts, copy-paste ready for Canva.">
+            <div style={{background:C.cream,border:`1px solid ${C.blush}`,borderRadius:12,padding:"12px 14px",marginBottom:"1rem",fontSize:12,color:C.charcoal,lineHeight:1.7}}>
+              <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.12em",fontWeight:700,marginBottom:6}}>HOW YOUR FRAMEWORKS ARE DISTRIBUTED</div>
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"4px 16px"}}>
+                {[["Days 1–5","Pain-to-Hook"],["Days 6–10","Narrow Content"],["Days 11–15","Reel Script"],["Days 16–20","Social Proof"],["Days 21–25","Saveable Carousel"],["Days 26–30","CTA Generator"]].map(([d,fw])=>(
+                  <div key={d} style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <span style={{fontSize:10,color:C.rose,fontWeight:700,minWidth:60}}>{d}</span>
+                    <span style={{fontSize:11,color:C.charcoal}}>{fw}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {(!f.niche&&!f.audience)&&(
+              <div style={{background:"#fff8f7",border:`1px solid ${C.blush}`,borderRadius:10,padding:"10px 14px",fontSize:12,color:C.roseDark,marginBottom:"1rem"}}>
+                ⚠️ Fill in your <strong>niche, audience & tone</strong> in the context card above before generating.
+              </div>
+            )}
+            <F label="Personal themes or stories to weave in" hint="Real moments make content convert — the more specific the better"><textarea style={ta} value={f.calThemes||""} onChange={e=>set("calThemes",e.target.value)} placeholder="e.g. my divorce story, paying off $8k on a nurse's salary, night shift struggles, the day I almost quit, my first digital product sale..."/></F>
           </Sec>
           <button style={btn("fill")} onClick={generateCalendar}>Generate my 30-day calendar →</button>
           {calLoading&&<div style={{margin:"1rem 0"}}><Spinner/><p style={{fontSize:12,color:"#aaa",fontStyle:"italic",marginTop:4}}>Building your 30-day content plan — this takes 20–30 seconds...</p></div>}
@@ -1178,8 +1227,11 @@ Output all 30 days in order. No extra text, no commentary, no explanations. Just
               {calDays.map(d=>(
                 <div key={d.day} style={{border:`1px solid ${C.blush}`,borderRadius:14,marginBottom:8,overflow:"hidden",background:C.white}}>
                   {/* Day header */}
-                  <div style={{background:C.cream,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.blush}`}}>
-                    <div style={{fontWeight:700,fontSize:12,color:C.roseDark,letterSpacing:"0.1em"}}>DAY {d.day}</div>
+                  <div style={{background:C.cream,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.blush}`,flexWrap:"wrap",gap:6}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{fontWeight:700,fontSize:12,color:C.roseDark,letterSpacing:"0.1em"}}>DAY {d.day}</div>
+                      {d.framework&&<div style={{fontSize:10,color:C.white,background:C.rose,borderRadius:20,padding:"2px 10px",letterSpacing:"0.06em",fontWeight:600}}>{d.framework}</div>}
+                    </div>
                     <button style={btn("out",true)} onClick={()=>navigator.clipboard?.writeText(`HOOK: ${d.hook}\n\nCAPTION:\n${d.caption}\n\nSCRIPT:\n${d.script}`)}>Copy day</button>
                   </div>
                   {/* 3 columns */}
