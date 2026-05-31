@@ -383,7 +383,7 @@ function ReclaimTab({data,setData,onSave}){
       `You are a warm, empowering coach for the RISE framework — for divorced moms who are nurses starting their own businesses. RECLAIM = separating who they had to become to survive from who they are choosing to become. Be specific, warm, feminine, powerful. Max 450 words.`,
       `Current situation: ${f.status||""}\nIndustry: ${f.industry||""}\nExperience: ${f.experience||""}\nWhat comes easily: ${f.gifts||""}\nTaught others: ${f.taught||""}\nSkills people ask for: ${f.skills||""}\nResearches in free time: ${f.interests||""}\nProblem solved recently: ${f.problem||""}\nWishes known 3 yrs ago: ${f.wisdom||""}\nTransformation story: ${f.transformation||""}\nOnline comfort: ${f.online||""}\nProduct type interest: ${f.productType||""}\nVision: ${f.vision||""}\nTime/week: ${f.time||""}\nBiggest fear: ${f.fear||""}\nAnything else: ${f.extra||""}\nIncome gap: $${gap}/month, needs ${units} sales at $${pr}\n\nBuild her personalized RECLAIM Blueprint across all 6 sections.`
     );
-    setResult(r);setData(d=>({...d,reclaimResult:r}));setLoading(false);
+    setResult(r);setData(d=>({...d,reclaimResult:r}));onSave(r,"Reclaim Blueprint");setLoading(false);
   }
 
   const tabs=[{id:"gap",label:"Income Gap"},{id:"blueprint",label:"Blueprint"}];
@@ -453,7 +453,7 @@ function ReclaimTab({data,setData,onSave}){
           </Sec>
           <button style={btn("fill")} onClick={generate}>Get my Reclaim Blueprint →</button>
           {loading&&<Spinner/>}
-          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Reclaim Blueprint")}>+ Save to library</button></>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
         </div>
       )}
     </div>
@@ -522,6 +522,7 @@ IMPORTANT: Write the COMPLETE section. This is final, publish-ready content — 
     const prompt = `Section: "${section.title}"\nPurpose: ${section.description}\nTransformation: From "${pf.before||'struggling'}" to "${pf.after||'thriving'}"\nContext: ${pf.modules||""} ${pf.quickwin||""}`;
     const content = await callClaude(sys, prompt, 3000);
     setSectionContents(prev => ({...prev, [section.id]: content}));
+    onSave(content, `Product — ${section.title}`);
     setSectionLoadings(prev => ({...prev, [section.id]: false}));
   }
 
@@ -703,6 +704,7 @@ function InstallTab({data,setData,onSave}){
     const r=await callClaude(sys,prompt);
     setResult(r);
     if(tool==="brand")setData(d=>({...d,installResult:r}));
+    onSave(r,tool==="brand"?"Brand Kit":"Idea Generator");
     setLoading(false);
   }
 
@@ -744,7 +746,7 @@ function InstallTab({data,setData,onSave}){
           </Sec>
           <button style={btn("fill")} onClick={generate}>Build my brand kit →</button>
           {loading&&<Spinner/>}
-          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Brand Kit")}>+ Save to library</button></>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
         </div>
       )}
 
@@ -766,7 +768,7 @@ function InstallTab({data,setData,onSave}){
           </Sec>
           <button style={btn("fill")} onClick={generate}>Generate my ideas →</button>
           {loading&&<Spinner/>}
-          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Idea Generator")}>+ Save to library</button></>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
         </div>
       )}
 
@@ -859,10 +861,10 @@ function SustainTab({data,setData,onSave}){
     return m[id]||{sys:`You are a content strategist and copywriter for divorced nurse moms building digital businesses. Write powerful, specific, conversion-worthy content. No generic filler — every word should feel like it came from a real woman who's been through hard things and is ready to rise.`,prompt:ctx};
   }
 
-  async function generate(sys,prompt){
+  async function generate(sys,prompt,label="Content"){
     setLoading(true);setResult("");
     const r=await callClaude(sys,prompt);
-    setResult(r);setData(d=>({...d,sustainResult:r}));setLoading(false);
+    setResult(r);setData(d=>({...d,sustainResult:r}));onSave(r,label);setLoading(false);
   }
 
   function addMoment(){
@@ -909,9 +911,9 @@ function SustainTab({data,setData,onSave}){
               </F>
             }
           </Sec>
-          <button style={btn("fill")} onClick={()=>{const{sys,prompt}=getFrameworkPrompts(f.framework||"pain-hook");generate(sys,prompt);}}>Generate content →</button>
+          <button style={btn("fill")} onClick={()=>{const{sys,prompt}=getFrameworkPrompts(f.framework||"pain-hook");const fw=frameworks.find(f2=>f2.id===(f.framework||"pain-hook"));generate(sys,prompt,`Content Studio — ${fw?.name||"Content"}`)}}>Generate content →</button>
           {loading&&<Spinner/>}
-          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Content Studio")}>+ Save to library</button></>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
         </div>
       )}
 
@@ -932,7 +934,7 @@ function SustainTab({data,setData,onSave}){
               <F label="Niche (optional)"><input style={inp} value={f.voiceNiche||""} onChange={e=>set("voiceNiche",e.target.value)}/></F>
               <F label="Audience (optional)"><input style={inp} value={f.voiceAudience||""} onChange={e=>set("voiceAudience",e.target.value)}/></F>
             </Sec>
-            <button style={btn("fill")} onClick={()=>generate(`You are a brand voice analyst for the RISE framework. Study the writing samples deeply. Identify: sentence rhythm, vocabulary level, emotional tone, personality traits, unique phrases, what makes it distinctly hers. Then write a Voice Guide she can use to brief anyone writing for her brand. Max 400 words.`,`Writing samples: ${f.voiceWriting||""}\nNiche: ${f.voiceNiche||""}\nAudience: ${f.voiceAudience||""}`)}>Analyse my voice →</button>
+            <button style={btn("fill")} onClick={()=>generate(`You are a brand voice analyst for the RISE framework. Study the writing samples deeply. Identify: sentence rhythm, vocabulary level, emotional tone, personality traits, unique phrases, what makes it distinctly hers. Then write a Voice Guide she can use to brief anyone writing for her brand. Max 400 words.`,`Writing samples: ${f.voiceWriting||""}\nNiche: ${f.voiceNiche||""}\nAudience: ${f.voiceAudience||""}`, "Brand Voice Mirror")}>Analyse my voice →</button>
           </div>}
 
           {subtool==="originstory"&&<div style={card}>
@@ -953,7 +955,7 @@ function SustainTab({data,setData,onSave}){
               <F label="Mission (optional)"><input style={inp} value={f.sMission||""} onChange={e=>set("sMission",e.target.value)}/></F>
               <F label="Niche (optional)"><input style={inp} value={f.sNiche||""} onChange={e=>set("sNiche",e.target.value)}/></F>
             </Sec>
-            <button style={btn("fill")} onClick={()=>generate(`You are a story coach for the RISE framework. Write 5 different versions of her origin story — each in a different format: 1) Instagram caption, 2) Email intro, 3) TikTok/Reel hook script, 4) Bio paragraph, 5) Conversational "tell me about yourself." Each version should be raw, specific, and powerful. Max 600 words total.`,`Before: ${f.sBefore||""}\nTurning point: ${f.sTurn||""}\nAfter: ${f.sAfter||""}\nWhy: ${f.sWhy||""}\nMission: ${f.sMission||""}\nNiche: ${f.sNiche||""}`)}>Build my origin story →</button>
+            <button style={btn("fill")} onClick={()=>generate(`You are a story coach for the RISE framework. Write 5 different versions of her origin story — each in a different format: 1) Instagram caption, 2) Email intro, 3) TikTok/Reel hook script, 4) Bio paragraph, 5) Conversational "tell me about yourself." Each version should be raw, specific, and powerful. Max 600 words total.`,`Before: ${f.sBefore||""}\nTurning point: ${f.sTurn||""}\nAfter: ${f.sAfter||""}\nWhy: ${f.sWhy||""}\nMission: ${f.sMission||""}\nNiche: ${f.sNiche||""}`, "Origin Story")}>Build my origin story →</button>
           </div>}
 
           {subtool==="pillars"&&<div style={card}>
@@ -970,7 +972,7 @@ function SustainTab({data,setData,onSave}){
               <F label="Audience"><input style={inp} value={f.pAudience||""} onChange={e=>set("pAudience",e.target.value)}/></F>
               <F label="Offer"><input style={inp} value={f.pOffer||""} onChange={e=>set("pOffer",e.target.value)}/></F>
             </Sec>
-            <button style={btn("fill")} onClick={()=>generate(`You are a content strategist for the RISE framework. Build 5 content pillars rooted in her real lived experience — not generic topics. Each pillar: name, description, why it connects to her story, 3 content ideas. Max 500 words.`,`Life: ${f.pLife||""}\nSkills: ${f.pSkills||""}\nNiche: ${f.pNiche||""}\nAudience: ${f.pAudience||""}\nOffer: ${f.pOffer||""}`)}>Build my story pillars →</button>
+            <button style={btn("fill")} onClick={()=>generate(`You are a content strategist for the RISE framework. Build 5 content pillars rooted in her real lived experience — not generic topics. Each pillar: name, description, why it connects to her story, 3 content ideas. Max 500 words.`,`Life: ${f.pLife||""}\nSkills: ${f.pSkills||""}\nNiche: ${f.pNiche||""}\nAudience: ${f.pAudience||""}\nOffer: ${f.pOffer||""}`, "Content Pillars")}>Build my story pillars →</button>
           </div>}
 
           {subtool==="angles"&&<div style={card}>
@@ -986,7 +988,7 @@ function SustainTab({data,setData,onSave}){
                 <textarea style={{...ta,marginTop:6}} value={f.angMoments||""} onChange={e=>set("angMoments",e.target.value)}/>
               </F>
             </Sec>
-            <button style={btn("fill")} onClick={()=>generate(`You are a story strategist for the RISE framework. Generate 5 distinct story angles for the given topic. Each angle: the hook, the narrative thread, why it resonates with the audience, and the CTA. Make each angle feel personal and non-generic. Max 500 words.`,`Topic: ${f.angTopic||""}\nNiche: ${f.angNiche||""}\nAudience: ${f.angAudience||""}\nMoments: ${f.angMoments||""}`)}>Generate story angles →</button>
+            <button style={btn("fill")} onClick={()=>generate(`You are a story strategist for the RISE framework. Generate 5 distinct story angles for the given topic. Each angle: the hook, the narrative thread, why it resonates with the audience, and the CTA. Make each angle feel personal and non-generic. Max 500 words.`,`Topic: ${f.angTopic||""}\nNiche: ${f.angNiche||""}\nAudience: ${f.angAudience||""}\nMoments: ${f.angMoments||""}`, "Story Angles")}>Generate story angles →</button>
           </div>}
 
           {subtool==="caption"&&<div style={card}>
@@ -1003,7 +1005,7 @@ function SustainTab({data,setData,onSave}){
               <F label="Your offer (optional)"><input style={inp} value={f.capOffer||""} onChange={e=>set("capOffer",e.target.value)}/></F>
               <F label="Tone (optional)"><Chips options={tones} selected={f.capTone||""} onToggle={v=>set("capTone",v)}/></F>
             </Sec>
-            <button style={btn("fill")} onClick={()=>generate(`You are a copywriter for the RISE framework. Write a transformation caption using before-shift-after structure. Make it specific, emotional, real. Not a template — it should sound like this exact woman's story. End with a subtle CTA. Max 300 words.`,`Before: ${f.capBefore||""}\nShift: ${f.capShift||""}\nAfter: ${f.capAfter||""}\nOffer: ${f.capOffer||""}\nTone: ${f.capTone||""}`)}>Build my caption →</button>
+            <button style={btn("fill")} onClick={()=>generate(`You are a copywriter for the RISE framework. Write a transformation caption using before-shift-after structure. Make it specific, emotional, real. Not a template — it should sound like this exact woman's story. End with a subtle CTA. Max 300 words.`,`Before: ${f.capBefore||""}\nShift: ${f.capShift||""}\nAfter: ${f.capAfter||""}\nOffer: ${f.capOffer||""}\nTone: ${f.capTone||""}`, "Transformation Caption")}>Build my caption →</button>
           </div>}
 
           {subtool==="scripts"&&<div style={card}>
@@ -1020,7 +1022,7 @@ function SustainTab({data,setData,onSave}){
               <F label="Niche"><input style={inp} value={f.scrNiche||""} onChange={e=>set("scrNiche",e.target.value)}/></F>
               <F label="Format"><Chips options={["IG story series","Email series","TikTok series"]} selected={f.scrFormat||""} onToggle={v=>set("scrFormat",v)}/></F>
             </Sec>
-            <button style={btn("fill")} onClick={()=>generate(`You are a story script writer for the RISE framework. Write a 5-part selling story sequence in the requested format. Each part flows into the next and builds toward the offer naturally — not salesy. Real, warm, specific. Max 600 words.`,`Offer: ${f.scrOffer||""}\nBefore: ${f.scrBefore||""}\nAfter: ${f.scrAfter||""}\nNiche: ${f.scrNiche||""}\nFormat: ${f.scrFormat||"IG story series"}`)}>Write my story series →</button>
+            <button style={btn("fill")} onClick={()=>generate(`You are a story script writer for the RISE framework. Write a 5-part selling story sequence in the requested format. Each part flows into the next and builds toward the offer naturally — not salesy. Real, warm, specific. Max 600 words.`,`Offer: ${f.scrOffer||""}\nBefore: ${f.scrBefore||""}\nAfter: ${f.scrAfter||""}\nNiche: ${f.scrNiche||""}\nFormat: ${f.scrFormat||"IG story series"}`, "Selling Story Scripts")}>Write my story series →</button>
           </div>}
 
           {subtool==="objection"&&<div style={card}>
@@ -1032,7 +1034,7 @@ function SustainTab({data,setData,onSave}){
               </F>
               <F label="Your offer"><input style={inp} value={f.objOffer||""} onChange={e=>set("objOffer",e.target.value)}/></F>
             </Sec>
-            <button style={btn("fill")} onClick={()=>generate(`You are a sales story coach for the RISE framework. Write a story-based response to the sales objection. Don't use logic or bullet points — use story. Make it personal, specific, and powerful. The reader should feel seen, not sold to. Max 300 words.`,`Objection: ${f.objObj||""}\nPersonal story: ${f.objStory||""}\nOffer: ${f.objOffer||""}`)}>Write story responses →</button>
+            <button style={btn("fill")} onClick={()=>generate(`You are a sales story coach for the RISE framework. Write a story-based response to the sales objection. Don't use logic or bullet points — use story. Make it personal, specific, and powerful. The reader should feel seen, not sold to. Max 300 words.`,`Objection: ${f.objObj||""}\nPersonal story: ${f.objStory||""}\nOffer: ${f.objOffer||""}`, "Objection Responder")}>Write story responses →</button>
           </div>}
 
           {subtool==="uniqueness"&&<div style={card}>
@@ -1043,7 +1045,7 @@ function SustainTab({data,setData,onSave}){
               </F>
               <F label="Context about you (optional)"><textarea style={ta} value={f.uniContext||""} onChange={e=>set("uniContext",e.target.value)} placeholder="Any personal details that should be in this content..."/></F>
             </Sec>
-            <button style={btn("fill")} onClick={()=>generate(`You are a content specificity coach for the RISE framework. Score the content 1-10 on how uniquely personal it is. Then rewrite it with maximum specificity — replace every generic phrase with a real, personal detail. Show before/after. Max 400 words.`,`Content: ${f.uniContent||""}\nContext: ${f.uniContext||""}`)}>Filter for uniqueness →</button>
+            <button style={btn("fill")} onClick={()=>generate(`You are a content specificity coach for the RISE framework. Score the content 1-10 on how uniquely personal it is. Then rewrite it with maximum specificity — replace every generic phrase with a real, personal detail. Show before/after. Max 400 words.`,`Content: ${f.uniContent||""}\nContext: ${f.uniContext||""}`, "Only I Could Write This")}>Filter for uniqueness →</button>
           </div>}
 
           {subtool==="audit"&&<div style={card}>
@@ -1052,7 +1054,7 @@ function SustainTab({data,setData,onSave}){
               <F label="Niche"><input style={inp} value={f.audNiche||""} onChange={e=>set("audNiche",e.target.value)}/></F>
               <F label="Audience"><input style={inp} value={f.audAudience||""} onChange={e=>set("audAudience",e.target.value)}/></F>
             </Sec>
-            <button style={btn("fill")} onClick={()=>generate(`You are a content auditor for the RISE framework. Give a full audit: 1) Overall score /10, 2) What's working, 3) What's generic, 4) What only SHE could add, 5) Full rewrite. Be direct but warm. Max 500 words.`,`Content: ${f.audContent||""}\nNiche: ${f.audNiche||""}\nAudience: ${f.audAudience||""}`)}>Audit my content →</button>
+            <button style={btn("fill")} onClick={()=>generate(`You are a content auditor for the RISE framework. Give a full audit: 1) Overall score /10, 2) What's working, 3) What's generic, 4) What only SHE could add, 5) Full rewrite. Be direct but warm. Max 500 words.`,`Content: ${f.audContent||""}\nNiche: ${f.audNiche||""}\nAudience: ${f.audAudience||""}`, "Standout Audit")}>Audit my content →</button>
           </div>}
 
           {subtool==="moments"&&<div style={card}>
@@ -1070,7 +1072,7 @@ function SustainTab({data,setData,onSave}){
                     <div style={{fontSize:13,color:C.charcoal,lineHeight:1.6,marginBottom:8}}>{m.text}</div>
                     <button style={btn("fill",true)} onClick={()=>{
                       set("writeWithMe",m.text);setTool("studio");
-                      generate(`You are a content creator for the RISE framework for divorced nurse moms. Take this real personal moment and turn it into a powerful piece of content. Make it raw, specific, and real. Platform: Instagram. Max 300 words.`,`Moment: ${m.text}`);
+                      generate(`You are a content creator for the RISE framework for divorced nurse moms. Take this real personal moment and turn it into a powerful piece of content. Make it raw, specific, and real. Platform: Instagram. Max 300 words.`,`Moment: ${m.text}`, "Brand Moment");
                     }}>Generate content from this moment →</button>
                   </div>
                 ))}
@@ -1084,7 +1086,7 @@ function SustainTab({data,setData,onSave}){
           </div>}
 
           {loading&&<Spinner/>}
-          {result&&subtool!=="moments"&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,`Sustain — ${storySubtools.find(t=>t.id===subtool)?.label||"Story"}`)}>+ Save to library</button></>}
+          {result&&subtool!=="moments"&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
         </div>
       )}
 
@@ -1095,9 +1097,9 @@ function SustainTab({data,setData,onSave}){
             <F label="Turn it into"><Chips options={["Carousel","Email","Caption","Story sequence","Pinterest pin","Reel script","LinkedIn post"]} selected={f.repTo||""} onToggle={v=>set("repTo",v)}/></F>
             <F label="Paste your content"><textarea style={{...ta,minHeight:120}} value={f.repContent||""} onChange={e=>set("repContent",e.target.value)} placeholder="Paste your caption, email, story, blog post..."/></F>
           </Sec>
-          <button style={btn("fill")} onClick={()=>generate(`You are a content repurposing expert for the RISE framework. Take the content and fully rebuild it in the new format. Don't start from scratch — extract the real voice, ideas, and story. Sound exactly like the original person. Be specific. No generic fillers. Max 500 words.`,`From: ${f.repFrom||""}\nTo: ${f.repTo||""}\nContent: ${f.repContent||""}`)}>Repurpose my content →</button>
+          <button style={btn("fill")} onClick={()=>generate(`You are a content repurposing expert for the RISE framework. Take the content and fully rebuild it in the new format. Don't start from scratch — extract the real voice, ideas, and story. Sound exactly like the original person. Be specific. No generic fillers. Max 500 words.`,`From: ${f.repFrom||""}\nTo: ${f.repTo||""}\nContent: ${f.repContent||""}`, `Repurposed — ${f.repTo||"content"}`)}>Repurpose my content →</button>
           {loading&&<Spinner/>}
-          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,`Repurposed → ${f.repTo||""}`)}>+ Save to library</button></>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
         </div>
       )}
     </div>
@@ -1125,7 +1127,7 @@ function ExpandTab({data,setData,onSave}){
   async function generate(){
     setLoading(true);
     const r=await callClaude(`You are a warm, powerful mindset coach for the RISE framework for divorced nurse moms. Combine emotional intelligence with practical tools. Speak like a trusted mentor who has been through hard things. Max 400 words.`,`Challenge: ${f.topic||"general"}\nDetails: ${f.details||""}\nVision: ${f.vision||""}\nTime/week: ${f.time||""}\nIncome goal: ${f.goal||""}`);
-    setResult(r);setData(d=>({...d,expandResult:r}));setLoading(false);
+    setResult(r);setData(d=>({...d,expandResult:r}));onSave(r,"Expand Coaching");setLoading(false);
   }
   async function addEntry(){
     if(!entry.trim())return;
@@ -1159,7 +1161,7 @@ function ExpandTab({data,setData,onSave}){
           </Sec>
           <button style={btn("fill")} onClick={generate}>Get my Expand coaching →</button>
           {loading&&<Spinner/>}
-          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Expand Coaching")}>+ Save to library</button></>}
+          {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
         </div>
       </>}
       {view==="journal"&&(
@@ -1212,7 +1214,7 @@ function PowerToolsTab({data,setData,onSave}){
       prompt=`Product: ${wf.product||""}\nPrice: ${wf.price||""}\nAudience size: ${wf.audience||""}\nVisibility: ${wf.visibility||""}\nExperience: ${wf.experience||""}`;
     }
     const r=await callClaude(sys,prompt);
-    setResult(r);setLoading(false);
+    setResult(r);onSave(r,tool==="price"?"Price Strategy":"Where to Sell");setLoading(false);
   }
 
   const tools=[{id:"price",icon:"💰",name:"Price Calculator",desc:"Get your confident, strategic price point"},{id:"where",icon:"🛒",name:"Where to Sell",desc:"Find the best platform for your product"}];
@@ -1258,7 +1260,7 @@ function PowerToolsTab({data,setData,onSave}){
       )}
 
       {loading&&<Spinner/>}
-      {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,tool==="price"?"Price Strategy":"Where to Sell")}>+ Save to library</button></>}
+      {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
     </div>
   );
 }
@@ -1276,7 +1278,7 @@ function PinterestTab({onSave}){
     if(mode==="topic")prompt=`Topic: ${f.topic||""}\nOffer: ${f.offer||""}\nNiche: ${f.niche||""}\nAudience: ${f.audience||""}`;
     if(mode==="repurpose")prompt=`Original (${f.origFormat||"caption"}): ${f.origContent||""}\nNiche: ${f.niche||""}\nOffer: ${f.offer||""}`;
     const r=await callClaude(`You are a Pinterest content strategist for divorced nurse moms building digital businesses. Create complete, optimized Pinterest content. Output: 1) Pin title (max 100 chars) 2) Pin description (150-300 words, keyword-rich) 3) Board name 4) 5 hashtags 5) SEO keywords. If topic given, build a 5-pin strategy. Warm, aspirational, searchable. Max 500 words.`,prompt);
-    setResult(r);setLoading(false);
+    setResult(r);onSave(r,"Pinterest");setLoading(false);
   }
   return(
     <div>
@@ -1305,7 +1307,7 @@ function PinterestTab({onSave}){
         </>}
         <button style={btn("fill")} onClick={generate}>Create my Pinterest content →</button>
         {loading&&<Spinner/>}
-        {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Pinterest")}>+ Save to library</button></>}
+        {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
       </div>
     </div>
   );
