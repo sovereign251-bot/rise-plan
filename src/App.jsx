@@ -1336,7 +1336,7 @@ export default function App(){
   }
   function logout(){localStorage.removeItem("rise_current_user");setUser(null);setData({});setSaved([]);setNav("home");}
   function saveItem(content,tag){setSaved(p=>[{content,tag,date:new Date().toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"})},...p]);}
-  function deleteItem(item){setSaved(p=>p.filter(i=>i!==item));}
+  function deleteItem(idx){setSaved(p=>p.filter((_,i)=>i!==idx));}
   function exportLib(){
     if(!saved.length)return;
     const t=saved.map(i=>`[${i.tag}] — ${i.date}\n${"─".repeat(40)}\n${i.content}\n`).join("\n\n");
