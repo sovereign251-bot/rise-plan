@@ -5,7 +5,7 @@ function useIsMobile() { return useContext(MobCtx); }
 
 const C = {
   rose:"#C49794",roseDark:"#a07370",blush:"#F2CFCC",
-  cream:"#FFEFED",pale:"#F9F8F8",accent1:"#EBDFDD",
+  cream:"#FFEFED",pale:"#F5F0EB",accent1:"#EBDFDD",
   accent2:"#D4BBB7",charcoal:"#494747",white:"#fff",
   gold:"#C9A84C",
 };
@@ -14,8 +14,8 @@ const btn = (variant="fill",sm=false) => ({
   background: variant==="fill" ? C.rose : "transparent",
   color: variant==="fill" ? C.white : C.rose,
   border: variant==="fill" ? "none" : `1.5px solid ${C.rose}`,
-  borderRadius: sm ? 6 : 8,
-  padding: sm ? "5px 14px" : "11px 24px",
+  borderRadius: sm ? 20 : 30,
+  padding: sm ? "5px 16px" : "11px 28px",
   cursor:"pointer", fontSize: sm ? 12 : 14,
   fontFamily:"Georgia,serif", letterSpacing:"0.02em",
   transition:"opacity 0.15s",
@@ -23,7 +23,7 @@ const btn = (variant="fill",sm=false) => ({
 const inp = { width:"100%", padding:"10px 12px", border:`1px solid ${C.blush}`, borderRadius:8, fontSize:14, fontFamily:"Georgia,serif", background:C.white, boxSizing:"border-box", color:C.charcoal, outline:"none" };
 const ta = { ...inp, resize:"vertical", minHeight:80 };
 const lbl = { fontSize:11, color:C.roseDark, fontWeight:600, letterSpacing:"0.1em", textTransform:"uppercase", display:"block", marginBottom:5 };
-const card = { background:C.white, borderRadius:16, border:`1px solid ${C.blush}`, padding:"1.5rem", marginBottom:"1rem" };
+const card = { background:C.white, borderRadius:20, boxShadow:"0 4px 20px rgba(196,151,148,0.10)", padding:"1.5rem", marginBottom:"1rem" };
 const aiBox = { background:C.cream, border:`1px solid ${C.blush}`, borderLeft:`3px solid ${C.rose}`, borderRadius:12, padding:"1.25rem 1.5rem", fontSize:14, lineHeight:1.8, color:C.charcoal, whiteSpace:"pre-wrap", marginTop:"1rem" };
 
 const chip = (active) => ({
@@ -246,58 +246,108 @@ function LoginScreen({onLogin}){
 // ── HOME ──────────────────────────────────────────────────────────────────────
 function HomeTab({user,data,setNav,saved}){
   const isMobile=useIsMobile();
+  const firstName=user.name.split(" ")[0];
   const phases=[
-    {id:"reclaim",letter:"R",name:"Reclaim",icon:"🌸",desc:"Separate who you had to become from who you are choosing to become.",check:data.reclaimResult},
-    {id:"install",letter:"I",name:"Install",icon:"⚡",desc:"Face your full financial picture and build your product plan.",check:data.installResult},
-    {id:"sustain",letter:"S",name:"Sustain",icon:"✨",desc:"Build habits, content, and brand for lasting stability.",check:data.sustainResult},
-    {id:"expand",letter:"E",name:"Expand",icon:"🌿",desc:"With stability beneath you, build the life fully yours.",check:data.expandResult},
+    {id:"reclaim",letter:"R",name:"Reclaim",desc:"Separate who you had to become from who you are choosing to become.",check:data.reclaimResult,grad:"linear-gradient(135deg,#6b5a59 0%,#8a6d6a 60%,#a07370 100%)",accent:"#e8c4c0"},
+    {id:"install",letter:"I",name:"Install",desc:"Face your full financial picture and build your product plan.",check:data.installResult,grad:"linear-gradient(135deg,#494747 0%,#6b5a59 60%,#7a6560 100%)",accent:"#d4bbb7"},
+    {id:"sustain",letter:"S",name:"Sustain",desc:"Build habits, content, and brand for lasting stability.",check:data.sustainResult,grad:"linear-gradient(135deg,#7a6560 0%,#a07370 60%,#C49794 100%)",accent:"#f2cfcc"},
+    {id:"expand",letter:"E",name:"Expand",desc:"With stability beneath you, build the life fully yours.",check:data.expandResult,grad:"linear-gradient(135deg,#5a4f4e 0%,#7a6560 60%,#9a7a77 100%)",accent:"#ebdfdd"},
   ];
   const done=phases.filter(p=>p.check).length;
   const pct=Math.round((done/4)*100);
+
+  const powerTools=[
+    {id:"power",label:"Content Studio",icon:"✍",badge:"fan fav"},
+    {id:"power",label:"Story & Voice",icon:"🎙",badge:null},
+    {id:"power",label:"Idea Generator",icon:"💡",badge:null},
+    {id:"reclaim",label:"Price Calculator",icon:"$",badge:null},
+    {id:"pinterest",label:"Pinterest",icon:"📌",badge:null},
+    {id:"library",label:`Library${saved.length>0?` (${saved.length})`:""}`,icon:"📂",badge:null},
+  ];
+
   return(
     <div>
-      <div style={{background:`linear-gradient(135deg,${C.charcoal} 0%,#6b5a59 100%)`,borderRadius:20,padding:"2rem",marginBottom:"1.25rem",position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",right:-20,top:-20,width:160,height:160,borderRadius:"50%",background:"rgba(242,207,204,0.08)"}}/>
-        <div style={{position:"absolute",right:40,bottom:-30,width:100,height:100,borderRadius:"50%",background:"rgba(196,151,148,0.1)"}}/>
-        <div style={{fontSize:22,color:C.gold,marginBottom:2}}>✦</div>
-        <p style={{fontSize:12,color:C.accent2,letterSpacing:"0.15em",margin:"0 0 6px",fontStyle:"italic"}}>welcome back,</p>
-        <h2 style={{fontSize:28,color:C.white,fontWeight:400,margin:"0 0 6px",fontFamily:"Georgia,serif"}}>{user.name}</h2>
-        <p style={{color:C.accent2,fontSize:13,margin:"0 0 1.5rem"}}>Your RISE journey is underway. Keep going — she's waiting for you.</p>
-        <div style={{background:"rgba(255,255,255,0.1)",borderRadius:8,height:6,marginBottom:8,overflow:"hidden"}}>
-          <div style={{background:`linear-gradient(90deg,${C.blush},${C.rose})`,height:"100%",width:`${pct}%`,borderRadius:8,transition:"width 0.8s ease"}}/>
+      {/* ── HERO ── */}
+      <div style={{background:`linear-gradient(135deg,${C.charcoal} 0%,#6b5a59 100%)`,borderRadius:24,padding:isMobile?"1.75rem 1.5rem":"2.25rem 2rem",marginBottom:"1.25rem",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",right:-30,top:-30,width:180,height:180,borderRadius:"50%",background:"rgba(242,207,204,0.07)"}}/>
+        <div style={{position:"absolute",right:50,bottom:-40,width:120,height:120,borderRadius:"50%",background:"rgba(196,151,148,0.09)"}}/>
+        <div style={{position:"absolute",left:"45%",top:16,fontSize:10,color:C.gold,opacity:0.5}}>✦</div>
+        <div style={{position:"absolute",right:30,top:20,fontSize:14,color:C.gold,opacity:0.4}}>✦</div>
+        <p style={{fontSize:13,color:C.accent2,letterSpacing:"0.1em",margin:"0 0 4px",fontStyle:"italic",fontFamily:"Georgia,serif"}}>welcome back,</p>
+        <h2 style={{fontSize:isMobile?32:40,color:C.white,fontWeight:400,margin:"0 0 8px",fontFamily:"Georgia,serif",lineHeight:1.1}}>{firstName}</h2>
+        <p style={{color:C.accent2,fontSize:13,margin:"0 0 1.5rem",lineHeight:1.6,maxWidth:340}}>Your RISE journey is underway. Keep going — she's waiting for you.</p>
+        <div style={{background:"rgba(255,255,255,0.12)",borderRadius:10,height:6,marginBottom:8,overflow:"hidden"}}>
+          <div style={{background:`linear-gradient(90deg,${C.blush},${C.rose})`,height:"100%",width:`${pct||4}%`,borderRadius:10,transition:"width 0.8s ease"}}/>
         </div>
-        <p style={{fontSize:12,color:C.accent2,margin:0}}>{done} of 4 phases activated — {pct}% of your RISE complete</p>
+        <p style={{fontSize:11,color:C.accent2,margin:0,letterSpacing:"0.05em"}}>{done} of 4 phases activated — {pct}% complete</p>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
+      {/* ── PHASE CARDS ── */}
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
         {phases.map(p=>(
-          <div key={p.id} onClick={()=>setNav(p.id)} style={{...card,marginBottom:0,cursor:"pointer",border:`1.5px solid ${p.check?C.rose:C.blush}`,position:"relative",transition:"transform 0.15s"}}>
-            {p.check&&<div style={{position:"absolute",top:10,right:12,fontSize:10,color:C.rose,background:C.blush,borderRadius:10,padding:"2px 8px",letterSpacing:"0.06em"}}>✓ DONE</div>}
-            <div style={{fontSize:24,marginBottom:8}}>{p.icon}</div>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-              <div style={{width:24,height:24,borderRadius:"50%",background:p.check?C.rose:C.accent1,color:p.check?C.white:C.roseDark,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700}}>{p.letter}</div>
-              <div style={{fontWeight:600,fontSize:14,color:C.charcoal}}>{p.name}</div>
+          <div key={p.id} onClick={()=>setNav(p.id)} style={{background:p.grad,borderRadius:20,padding:"1.5rem 1.25rem",cursor:"pointer",position:"relative",overflow:"hidden",minHeight:140,display:"flex",flexDirection:"column",justifyContent:"space-between",transition:"transform 0.15s, box-shadow 0.15s",boxShadow:"0 6px 24px rgba(73,71,71,0.18)"}}>
+            <div style={{position:"absolute",right:-20,bottom:-20,width:90,height:90,borderRadius:"50%",background:"rgba(255,255,255,0.06)"}}/>
+            {/* frosted glass badge */}
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.15)",backdropFilter:"blur(6px)",borderRadius:30,padding:"4px 12px",width:"fit-content",marginBottom:8}}>
+              <div style={{width:18,height:18,borderRadius:"50%",background:p.check?"rgba(255,255,255,0.9)":"rgba(255,255,255,0.25)",color:p.check?p.grad.includes("C49794")?C.roseDark:"#6b5a59":"rgba(255,255,255,0.9)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,flexShrink:0}}>{p.check?"✓":p.letter}</div>
+              <span style={{fontSize:11,color:"rgba(255,255,255,0.9)",letterSpacing:"0.06em",fontWeight:600}}>{p.name}</span>
             </div>
-            <div style={{fontSize:12,color:"#999",lineHeight:1.5}}>{p.desc}</div>
+            <div>
+              <p style={{fontSize:11,color:"rgba(255,255,255,0.7)",lineHeight:1.5,margin:"0 0 12px",maxWidth:140}}>{p.desc}</p>
+              <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(255,255,255,0.18)",borderRadius:20,padding:"5px 14px",fontSize:12,color:"rgba(255,255,255,0.95)",fontFamily:"Georgia,serif"}}>
+                Open →
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"1fr 1fr 1fr",gap:10,marginBottom:"1.25rem"}}>
-        {[{id:"pinterest",label:"Pinterest Creator",icon:"📌"},{id:"repurpose",label:"Repurpose",icon:"↻"},{id:"library",label:`Library ${saved.length>0?`(${saved.length})`:""}`,icon:"📂"}].map(t=>(
-          <div key={t.id} onClick={()=>setNav(t.id)} style={{...card,marginBottom:0,cursor:"pointer",textAlign:"center",padding:"1.25rem 0.75rem"}}>
-            <div style={{fontSize:22,marginBottom:6}}>{t.icon}</div>
-            <div style={{fontSize:12,color:C.charcoal,fontWeight:500}}>{t.label}</div>
-          </div>
-        ))}
+      {/* ── POWER TOOLS HORIZONTAL SCROLL ── */}
+      <div style={{marginBottom:"1.25rem"}}>
+        <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,textTransform:"uppercase",marginBottom:12}}>Power Tools</div>
+        <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+          <style>{`.pt-strip::-webkit-scrollbar{display:none}`}</style>
+          {powerTools.map((t,i)=>(
+            <div key={i} onClick={()=>setNav(t.id)} style={{flexShrink:0,width:96,cursor:"pointer",textAlign:"center"}}>
+              <div style={{position:"relative",width:64,height:64,borderRadius:"50%",background:C.white,boxShadow:"0 4px 16px rgba(196,151,148,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,margin:"0 auto 8px"}}>
+                {t.icon}
+                {t.badge&&<div style={{position:"absolute",top:-4,right:-4,background:C.gold,color:C.white,fontSize:8,fontWeight:700,letterSpacing:"0.05em",borderRadius:10,padding:"2px 6px",whiteSpace:"nowrap"}}>{t.badge}</div>}
+              </div>
+              <div style={{fontSize:11,color:C.charcoal,fontWeight:500,lineHeight:1.3}}>{t.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
+      {/* ── RISE JOURNEY ── */}
+      <div style={{...card,marginBottom:"1.25rem"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,textTransform:"uppercase"}}>Your RISE Journey</div>
+          <div style={{fontSize:11,color:C.rose}}>{pct}% complete</div>
+        </div>
+        <div style={{background:C.blush,borderRadius:8,height:5,marginBottom:16,overflow:"hidden"}}>
+          <div style={{background:`linear-gradient(90deg,${C.rose},${C.blush})`,height:"100%",width:`${pct||2}%`,borderRadius:8,transition:"width 0.8s ease"}}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {phases.map(p=>(
+            <div key={p.id} onClick={()=>setNav(p.id)} style={{borderRadius:14,padding:"14px",background:p.check?C.cream:C.pale,border:`1px solid ${p.check?C.blush:"rgba(196,151,148,0.15)"}`,cursor:"pointer",position:"relative"}}>
+              {!p.check&&<div style={{position:"absolute",top:10,right:12,fontSize:13,color:"#ccc"}}>🔒</div>}
+              {p.check&&<div style={{position:"absolute",top:10,right:12,width:18,height:18,borderRadius:"50%",background:C.rose,display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:C.white,fontWeight:700}}>✓</div>}
+              <div style={{width:28,height:28,borderRadius:"50%",background:p.check?C.rose:C.accent1,color:p.check?C.white:C.roseDark,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,marginBottom:8}}>{p.letter}</div>
+              <div style={{fontSize:13,fontWeight:600,color:C.charcoal,marginBottom:3}}>{p.name}</div>
+              <div style={{fontSize:10,color:p.check?C.rose:"#bbb",letterSpacing:"0.04em"}}>{p.check?"Complete":"Tap to start →"}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── RECENT SAVES ── */}
       {saved.length>0&&(
         <div style={card}>
-          <div style={{fontSize:11,color:C.roseDark,letterSpacing:"0.1em",fontWeight:600,marginBottom:12}}>RECENT SAVES</div>
+          <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,textTransform:"uppercase",marginBottom:12}}>Recent Saves</div>
           {saved.slice(0,3).map((item,i)=>(
             <div key={i} style={{padding:"10px 0",borderBottom:`1px solid ${C.blush}`,fontSize:13,display:"flex",gap:10,alignItems:"flex-start"}}>
-              <span style={{background:C.blush,color:C.roseDark,borderRadius:10,padding:"2px 8px",fontSize:10,whiteSpace:"nowrap",marginTop:2}}>{item.tag}</span>
+              <span style={{background:C.blush,color:C.roseDark,borderRadius:20,padding:"2px 10px",fontSize:10,whiteSpace:"nowrap",marginTop:2,fontWeight:600}}>{item.tag}</span>
               <span style={{color:"#888",lineHeight:1.5}}>{item.content.substring(0,80)}...</span>
             </div>
           ))}
