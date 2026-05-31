@@ -729,6 +729,7 @@ function InstallTab({data,setData,onSave}){
 
 // ── SUSTAIN ───────────────────────────────────────────────────────────────────
 function SustainTab({data,setData,onSave}){
+  const isMobile=useIsMobile();
   const[tool,setTool]=useState("studio");
   const[subtool,setSubtool]=useState("");
   const[loading,setLoading]=useState(false);
@@ -768,7 +769,45 @@ function SustainTab({data,setData,onSave}){
     {group:"Build trust",items:["Proof","Testimonials","Behind the scenes"]},
     {group:"Inspire & motivate",items:["Mindset","Aspirational","Big picture vision"]},
   ];
-  const quickStarts=["I have no idea what to post — help","Write me a caption","Create 7 hooks for a post","Build a carousel","Plan my content for the week","Give me a 30-day content plan","Write a story sequence"];
+  const frameworks=[
+    {id:"pain-hook",icon:"🎯",name:"Pain-to-Hook",desc:"Turn your audience's #1 pain into hooks under 10 words that stop the scroll cold"},
+    {id:"narrow",icon:"🔬",name:"Narrow Content",desc:"Drill a broad topic down to the most specific, underserved angle — feels written for one person"},
+    {id:"reel",icon:"🎬",name:"30-Sec Reel Script",desc:"Hook → Tension → Insight → CTA. Short sentences only. Zero fluff. Max watch time"},
+    {id:"social-proof",icon:"⭐",name:"Social Proof Rewrite",desc:"Paste a result or testimonial → before/after/turning point → curiosity phrases under 10 words"},
+    {id:"carousel",icon:"📱",name:"Saveable Carousel",desc:"Every slide is a lightbulb moment that could stand alone as its own post"},
+    {id:"cta",icon:"💬",name:"CTA Generator",desc:"Comment [keyword] if you are [dream customer] trying to [outcome] — polarizing and specific"},
+  ];
+
+  function getFrameworkPrompts(id){
+    const ctx=`Niche: ${f.niche||"nurse entrepreneurs"}\nAudience: ${f.audience||"divorced nurse moms building digital businesses"}\nProduct/offer: ${f.product||""}\nTopic/context: ${f.writeWithMe||""}`;
+    const m={
+      "pain-hook":{
+        sys:`You are a viral hook copywriter for divorced nurse moms building digital businesses. Your hooks stop the scroll cold and make people feel deeply seen. RULES: Every hook under 10 words. Lead with a visceral, specific pain — not platitudes. Make it feel like you're reading their diary. Create an open loop they NEED to close. Write 8 hooks. Numbered list only. No explanations. No filler. Just the hooks.`,
+        prompt:ctx+`\nTone: ${f.tone||"raw and real"}\nPlatform: ${f.platform||""}`,
+      },
+      "narrow":{
+        sys:`You are a hyper-specific content strategist. Your job is to take the broad topic and narrow it to the most underserved, invisible sub-problem that feels written for ONE specific person. Generic content is your enemy.\n\nOutput format:\n1. THE NARROW ANGLE (one sentence — the exact specific angle almost no creator is talking about)\n2. WHY THIS HITS (2 sentences — why this creates instant "that's me" recognition)\n3. THE CONTENT (full post/caption written from this narrow angle — specific names, specific numbers, specific situations. Zero filler. Sounds like a real woman, not a template.)`,
+        prompt:ctx,
+      },
+      "reel":{
+        sys:`You are a viral reel script writer for divorced nurse moms building digital businesses. Write a 30-second reel script engineered for maximum hook rate and watch time.\n\nSTRUCTURE (label every section):\nHOOK (0–3s): One line. Creates open loop. Forces them to keep watching. Scroll-stopping.\nTENSION (3–12s): Build the pain. Make them feel it. 2–3 short sentences.\nINSIGHT (12–22s): The reframe. Changes how they see the problem. Specific. 2–3 sentences.\nCTA (22–30s): "Comment [WORD] if you are [specific identity] trying to [specific outcome]."\n\nRULES: 3–5 words per sentence MAX. Zero fluff. No transitions or filler words. Every word earns its place. Punchy, fast, raw, real. Label each section on its own line.`,
+        prompt:ctx+`\nPlatform: ${f.platform||"Instagram/TikTok"}\nTone: ${f.tone||""}`,
+      },
+      "social-proof":{
+        sys:`You are a social proof copywriter who extracts conversion gold from testimonials.\n\nOutput format:\nBEFORE: [their exact pain state — specific]\nTURNING POINT: [the precise moment everything shifted]\nAFTER: [the specific result]\n\n---\nMARKETING PHRASES:\nWrite 10 short phrases under 10 words each. Each phrase must: create curiosity, make the dream customer say "that's me," use before/after contrast or the turning point. One phrase per line. No numbering. No punctuation at end. Make each one feel like a punch.`,
+        prompt:`Testimonial/result: ${f.testimonial||f.writeWithMe||""}\nNiche: ${f.niche||""}\nDream customer: ${f.audience||""}`,
+      },
+      "carousel":{
+        sys:`You are a saveable carousel strategist. Every single slide must be so specific and clear it could stand alone as its own post. Each slide creates a lightbulb moment — not just informs, REFRAMES how they see the problem.\n\nSTRUCTURE:\nSLIDE 1 — HOOK: Bold, specific, creates pattern interrupt. Makes them stop and swipe.\nSLIDES 2–6 — INSIGHT SLIDES: One reframe per slide. 15–20 words max each. "I never thought of it this way" energy. Not advice — a shift in perspective.\nSLIDE 7 — CTA: "Comment [KEYWORD] if you are [specific dream customer] trying to [specific outcome]."\n\nRULES: One idea per slide. No filler. No "in this carousel." No transitions. Every slide = mic drop. Label each slide clearly: SLIDE 1, SLIDE 2, etc.`,
+        prompt:ctx+`\nTone: ${f.tone||"bold and direct"}`,
+      },
+      "cta":{
+        sys:`You are a CTA specialist who writes polarizing, specific calls-to-action that filter in dream customers and filter out everyone else. The right person should feel uncomfortably seen.\n\nFORMAT (use exactly for every CTA): "Comment [KEYWORD] if you are [hyper-specific dream customer description] trying to [very specific dream outcome]."\n\nRULES:\n- KEYWORD: memorable, relevant, 1–2 words max\n- Dream customer: SO specific it excludes most people — that's the point\n- Dream outcome: name the exact transformation, not a vague goal\n- Write 6 CTAs. Vary keywords and angles. No two should feel similar.\n- Each one should make the exact right person stop scrolling.`,
+        prompt:ctx+`\nOffer: ${f.product||""}`,
+      },
+    };
+    return m[id]||{sys:`You are a content strategist and copywriter for divorced nurse moms building digital businesses. Write powerful, specific, conversion-worthy content. No generic filler — every word should feel like it came from a real woman who's been through hard things and is ready to rise.`,prompt:ctx};
+  }
 
   async function generate(sys,prompt){
     setLoading(true);setResult("");
@@ -789,24 +828,38 @@ function SustainTab({data,setData,onSave}){
 
       {tool==="studio"&&(
         <div style={card}>
-          <Sec title="Content Studio" sub="Content that grows your audience, builds trust and sells.">
-            <F label="What kind of content?">
-              {contentGroups.map(g=>(
-                <div key={g.group} style={{marginBottom:8}}>
-                  <div style={{fontSize:11,color:"#aaa",letterSpacing:"0.06em",marginBottom:4}}>{g.group}</div>
-                  {g.items.map(item=><span key={item} style={chip(f.contentType===item)} onClick={()=>set("contentType",item)}>{item}</span>)}
-                </div>
-              ))}
+          <Sec title="Content Studio" sub="Six proven frameworks that grow audiences, build trust, and convert viewers into customers.">
+            <F label="1. Choose your content framework">
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,marginTop:4}}>
+                {frameworks.map(fw=>(
+                  <div key={fw.id} onClick={()=>set("framework",fw.id)} style={{
+                    padding:"12px",borderRadius:10,cursor:"pointer",
+                    border:`1.5px solid ${f.framework===fw.id?C.rose:C.blush}`,
+                    background:f.framework===fw.id?C.cream:C.white,
+                    transition:"all 0.15s",
+                  }}>
+                    <div style={{fontSize:18,marginBottom:4}}>{fw.icon}</div>
+                    <div style={{fontWeight:600,fontSize:13,color:C.charcoal,marginBottom:3}}>{fw.name}</div>
+                    <div style={{fontSize:11,color:"#999",lineHeight:1.45}}>{fw.desc}</div>
+                  </div>
+                ))}
+              </div>
             </F>
-            <F label="Pick one tone"><Chips options={tones} selected={f.tone||""} onToggle={v=>set("tone",v)}/></F>
-            <F label="Niche"><input style={inp} value={f.niche||""} onChange={e=>set("niche",e.target.value)} placeholder="e.g. Nurse entrepreneurs, financial freedom after divorce..."/></F>
-            <F label="Target audience"><input style={inp} value={f.audience||""} onChange={e=>set("audience",e.target.value)} placeholder="Divorced moms who are nurses..."/></F>
-            <F label="Your product (if any)"><input style={inp} value={f.product||""} onChange={e=>set("product",e.target.value)}/></F>
-            <F label="Platform"><Chips options={["Instagram","TikTok","Pinterest","YouTube","Email","LinkedIn"]} selected={f.platform||""} onToggle={v=>set("platform",v)}/></F>
-            <F label="Quick starts"><Chips options={quickStarts} selected={f.quickStart||""} onToggle={v=>set("quickStart",v)}/></F>
-            <F label="Write with me" hint="Tell me what you want to create and I'll make it sound exactly like you."><textarea style={ta} value={f.writeWithMe||""} onChange={e=>set("writeWithMe",e.target.value)} placeholder="No templates or fillers — just your story written properly."/></F>
+            <F label="2. Your niche"><input style={inp} value={f.niche||""} onChange={e=>set("niche",e.target.value)} placeholder="e.g. Nurse entrepreneurs, financial freedom after divorce..."/></F>
+            <F label="3. Your dream audience"><input style={inp} value={f.audience||""} onChange={e=>set("audience",e.target.value)} placeholder="e.g. Divorced moms who are nurses wanting to build a digital income..."/></F>
+            <F label="4. Your product or offer (if any)"><input style={inp} value={f.product||""} onChange={e=>set("product",e.target.value)} placeholder="e.g. My ebook on paying off debt on a nurse's salary"/></F>
+            <F label="5. Platform"><Chips options={["Instagram","TikTok","Pinterest","YouTube","Email","LinkedIn"]} selected={f.platform||""} onToggle={v=>set("platform",v)}/></F>
+            <F label="6. Tone"><Chips options={tones} selected={f.tone||""} onToggle={v=>set("tone",v)}/></F>
+            {f.framework==="social-proof"
+              ?<F label="7. Paste your testimonial, result or DM" hint="Paste it exactly as they wrote/said it — the rawer the better">
+                <textarea style={{...ta,minHeight:100}} value={f.testimonial||""} onChange={e=>set("testimonial",e.target.value)} placeholder="e.g. 'I literally cried when I paid off my credit card. I never thought a nurse's salary could do that...'"/>
+              </F>
+              :<F label="7. Topic, angle or context" hint="What's this content about? Any specific story, number or detail makes it 10x better">
+                <textarea style={ta} value={f.writeWithMe||""} onChange={e=>set("writeWithMe",e.target.value)} placeholder="e.g. How I paid off $8k in debt on a nurse's salary while raising 2 kids alone..."/>
+              </F>
+            }
           </Sec>
-          <button style={btn("fill")} onClick={()=>generate(`You are a content strategist and copywriter for the RISE framework for divorced nurse moms building digital businesses. Write powerful, specific, conversion-worthy content. No generic filler — every word should feel like it came from a real woman who's been through hard things and is ready to rise. Match the requested tone exactly. Max 500 words.`,`Request: ${f.quickStart||f.writeWithMe||"general content"}\nType: ${f.contentType||""}\nTone: ${f.tone||""}\nNiche: ${f.niche||""}\nAudience: ${f.audience||"divorced nurse moms"}\nProduct: ${f.product||""}\nPlatform: ${f.platform||""}`)}>Generate content →</button>
+          <button style={btn("fill")} onClick={()=>{const{sys,prompt}=getFrameworkPrompts(f.framework||"pain-hook");generate(sys,prompt);}}>Generate content →</button>
           {loading&&<Spinner/>}
           {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><button style={{...btn("fill",true),marginTop:10}} onClick={()=>onSave(result,"Content Studio")}>+ Save to library</button></>}
         </div>
