@@ -1315,7 +1315,12 @@ export default function App(){
   useEffect(()=>{
     const email=localStorage.getItem("rise_current_user");
     if(email){
-      const name=localStorage.getItem(`rise_name_${email}`)||email;
+      let name=localStorage.getItem(`rise_name_${email}`);
+      if(!name){
+        try{const old=localStorage.getItem(`rise_auth_${email}`);if(old)name=JSON.parse(old).name;}catch{}
+      }
+      name=name||email.split("@")[0];
+      localStorage.setItem(`rise_name_${email}`,name);
       setUser({name,email});
       const d=localStorage.getItem(`rise_data_${email}`);if(d)setData(JSON.parse(d));
       const l=localStorage.getItem(`rise_lib_${email}`);if(l)setSaved(JSON.parse(l));
