@@ -787,6 +787,8 @@ function SustainTab({data,setData,onSave}){
   const[loading,setLoading]=useState(false);
   const[result,setResult]=useState("");
   const[nudges,setNudges]=useState({});
+  const[calLoading,setCalLoading]=useState(false);
+  const[calDays,setCalDays]=useState([]);
   const f=data.sustain||{};
   const set=(k,v)=>setData(d=>({...d,sustain:{...d.sustain,[k]:v}}));
 
@@ -798,6 +800,7 @@ function SustainTab({data,setData,onSave}){
     {id:"studio",icon:"✍️",name:"Content Studio",desc:"Generate content that sells, grows & connects"},
     {id:"story",icon:"📖",name:"Story & Voice",desc:"Build your origin story, voice & content pillars"},
     {id:"repurpose",icon:"↻",name:"Repurpose",desc:"Turn one piece of content into many formats"},
+    {id:"calendar",icon:"📅",name:"30-Day Calendar",desc:"30 days of hooks, captions & reel scripts — Canva ready"},
   ];
   const storySubtools=[
     {id:"voicemirror",label:"Brand Voice Mirror"},
@@ -871,6 +874,46 @@ function SustainTab({data,setData,onSave}){
     if(!f.newMoment?.trim())return;
     const moments=[...(data.moments||[]),{text:f.newMoment,date:new Date().toLocaleDateString("en-CA",{month:"short",day:"numeric"})}];
     setData(d=>({...d,moments}));set("newMoment","");
+  }
+
+  async function generateCalendar(){
+    setCalLoading(true);setCalDays([]);
+    const sys=`You are a content calendar strategist for divorced nurse moms building digital businesses. Create a 30-day content calendar that mixes selling, growth, entertainment, education, trust-building, and inspiration content across the month.
+
+For EACH of the 30 days, output EXACTLY this format — nothing else:
+DAY [number]
+HOOK: [One punchy scroll-stopping line, under 10 words]
+CAPTION: [3-4 sentences: relatable opener + key message + CTA. Max 60 words total.]
+SCRIPT:
+HOOK: [Same or stronger hook]
+TENSION: [Build the pain — 1 short sentence]
+INSIGHT: [The reframe — 1 short sentence]
+CTA: Comment [KEYWORD] if you are [specific person] trying to [specific outcome]
+---
+
+Output all 30 days in order. No extra text, no commentary, no explanations. Just the 30 days.`;
+    const prompt=`Niche: ${f.calNiche||f.niche||"nurse entrepreneurs"}\nAudience: ${f.calAudience||f.audience||"divorced nurse moms building digital businesses"}\nOffer: ${f.calOffer||f.product||""}\nPlatform: ${f.calPlatform||"Instagram/TikTok"}\nTone: ${f.calTone||f.tone||"warm and real"}\nPersonal themes/stories to weave in: ${f.calThemes||""}`;
+    const raw=await callClaude(sys,prompt,4000);
+    const blocks=raw.split(/\n---+\n?/).filter(b=>b.trim());
+    const days=blocks.map(block=>{
+      const dayMatch=block.match(/DAY\s*(\d+)/i);
+      if(!dayMatch)return null;
+      const hookMatch=block.match(/^HOOK:\s*(.+)/im);
+      const captionMatch=block.match(/CAPTION:\s*([\s\S]+?)(?=\nSCRIPT:|---)/i);
+      const scriptMatch=block.match(/SCRIPT:\s*([\s\S]+?)$/i);
+      return{
+        day:parseInt(dayMatch[1]),
+        hook:hookMatch?.[1]?.trim()||"",
+        caption:captionMatch?.[1]?.trim()||"",
+        script:scriptMatch?.[1]?.trim()||"",
+      };
+    }).filter(Boolean).sort((a,b)=>a.day-b.day);
+    if(days.length>0){
+      setCalDays(days);
+      const saved=days.map(d=>`Day ${d.day}\nHOOK: ${d.hook}\nCAPTION: ${d.caption}\nSCRIPT:\n${d.script}`).join("\n\n---\n\n");
+      onSave(saved,"30-Day Calendar");
+    }
+    setCalLoading(false);
   }
 
   return(
@@ -1100,6 +1143,64 @@ function SustainTab({data,setData,onSave}){
           <button style={btn("fill")} onClick={()=>generate(`You are a content repurposing expert for the RISE framework. Take the content and fully rebuild it in the new format. Don't start from scratch — extract the real voice, ideas, and story. Sound exactly like the original person. Be specific. No generic fillers. Max 500 words.`,`From: ${f.repFrom||""}\nTo: ${f.repTo||""}\nContent: ${f.repContent||""}`, `Repurposed — ${f.repTo||"content"}`)}>Repurpose my content →</button>
           {loading&&<Spinner/>}
           {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
+        </div>
+      )}
+
+      {tool==="calendar"&&(
+        <div style={card}>
+          <Sec title="30-Day Content Calendar" sub="Your complete month of hooks, captions, and reel scripts — 3 columns, copy-paste ready for Canva.">
+            <F label="Your niche"><input style={inp} value={f.calNiche||""} onChange={e=>set("calNiche",e.target.value)} placeholder="e.g. Nurse entrepreneurs, financial freedom after divorce..."/></F>
+            <F label="Your dream audience"><input style={inp} value={f.calAudience||""} onChange={e=>set("calAudience",e.target.value)} placeholder="e.g. Divorced moms who are nurses wanting digital income..."/></F>
+            <F label="Your offer or product"><input style={inp} value={f.calOffer||""} onChange={e=>set("calOffer",e.target.value)} placeholder="e.g. My ebook on paying off debt on a nurse's salary"/></F>
+            <F label="Platform"><Chips options={["Instagram","TikTok","Both"]} selected={f.calPlatform||""} onToggle={v=>set("calPlatform",v)}/></F>
+            <F label="Tone"><Chips options={tones} selected={f.calTone||""} onToggle={v=>set("calTone",v)}/></F>
+            <F label="Personal themes or stories to weave in" hint="The more specific, the better — real moments make content convert"><textarea style={ta} value={f.calThemes||""} onChange={e=>set("calThemes",e.target.value)} placeholder="e.g. my divorce story, paying off $8k, night shift struggles, building my first digital product, the day I almost quit..."/></F>
+          </Sec>
+          <button style={btn("fill")} onClick={generateCalendar}>Generate my 30-day calendar →</button>
+          {calLoading&&<div style={{margin:"1rem 0"}}><Spinner/><p style={{fontSize:12,color:"#aaa",fontStyle:"italic",marginTop:4}}>Building your 30-day content plan — this takes 20–30 seconds...</p></div>}
+          {calDays.length>0&&(
+            <div style={{marginTop:"1.5rem"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:8}}>
+                <div style={{fontSize:11,color:C.roseDark,fontWeight:700,letterSpacing:"0.1em"}}>{calDays.length} DAYS GENERATED · ✓ AUTO-SAVED TO LIBRARY</div>
+                <button style={btn("out",true)} onClick={()=>{
+                  const t="DAY\tHOOK\tCAPTION\tSCRIPT\n"+calDays.map(d=>`Day ${d.day}\t${d.hook}\t${d.caption}\t${d.script.replace(/\n/g," ")}`).join("\n");
+                  navigator.clipboard?.writeText(t);
+                }}>Copy all (spreadsheet format)</button>
+              </div>
+              {/* Column headers — desktop only */}
+              {!isMobile&&(
+                <div style={{display:"grid",gridTemplateColumns:"52px 1fr 1fr 1fr",gap:0,marginBottom:4,padding:"0 14px"}}>
+                  {["","HOOK","CAPTION","SCRIPT"].map(h=>(
+                    <div key={h} style={{fontSize:9,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,padding:"0 10px"}}>{h}</div>
+                  ))}
+                </div>
+              )}
+              {calDays.map(d=>(
+                <div key={d.day} style={{border:`1px solid ${C.blush}`,borderRadius:14,marginBottom:8,overflow:"hidden",background:C.white}}>
+                  {/* Day header */}
+                  <div style={{background:C.cream,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.blush}`}}>
+                    <div style={{fontWeight:700,fontSize:12,color:C.roseDark,letterSpacing:"0.1em"}}>DAY {d.day}</div>
+                    <button style={btn("out",true)} onClick={()=>navigator.clipboard?.writeText(`HOOK: ${d.hook}\n\nCAPTION:\n${d.caption}\n\nSCRIPT:\n${d.script}`)}>Copy day</button>
+                  </div>
+                  {/* 3 columns */}
+                  <div style={{display:isMobile?"block":"grid",gridTemplateColumns:"1fr 1fr 1fr"}}>
+                    <div style={{padding:"12px 14px",borderRight:isMobile?"none":`1px solid ${C.blush}`,borderBottom:isMobile?`1px solid ${C.blush}`:"none"}}>
+                      {isMobile&&<div style={{fontSize:9,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,marginBottom:5}}>HOOK</div>}
+                      <div style={{fontSize:13,color:C.charcoal,lineHeight:1.6,fontStyle:"italic"}}>"{d.hook}"</div>
+                    </div>
+                    <div style={{padding:"12px 14px",borderRight:isMobile?"none":`1px solid ${C.blush}`,borderBottom:isMobile?`1px solid ${C.blush}`:"none"}}>
+                      {isMobile&&<div style={{fontSize:9,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,marginBottom:5}}>CAPTION</div>}
+                      <div style={{fontSize:12,color:C.charcoal,lineHeight:1.6}}>{d.caption}</div>
+                    </div>
+                    <div style={{padding:"12px 14px"}}>
+                      {isMobile&&<div style={{fontSize:9,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,marginBottom:5}}>SCRIPT</div>}
+                      <div style={{fontSize:12,color:C.charcoal,lineHeight:1.7,whiteSpace:"pre-line"}}>{d.script}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
