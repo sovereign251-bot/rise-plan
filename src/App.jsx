@@ -180,25 +180,32 @@ function ToolGrid({tools,active,onSelect}){
 function LoginScreen({onLogin}){
   const isMobile=useIsMobile();
   const[mode,setMode]=useState("login");
-  const[email,setEmail]=useState("");const[pw,setPw]=useState("");const[name,setName]=useState("");const[err,setErr]=useState("");
-  function submit(e){
+  const[email,setEmail]=useState("");const[pw,setPw]=useState("");const[name,setName]=useState("");
+  const[err,setErr]=useState("");const[loading,setLoading]=useState(false);
+
+  async function submit(e){
     if(e)e.preventDefault();
     setErr("");
     if(!email||!pw)return setErr("Please enter your email and password.");
-    const k=`rise_auth_${email.toLowerCase()}`;
-    if(mode==="signup"){
-      if(!name)return setErr("Please enter your name.");
-      if(localStorage.getItem(k))return setErr("Account already exists. Please log in.");
-      const u={name,email:email.toLowerCase(),password:pw};
-      localStorage.setItem(k,JSON.stringify(u));localStorage.setItem("rise_current_user",email.toLowerCase());onLogin(u);
-    }else{
-      const stored=localStorage.getItem(k);
-      if(!stored)return setErr("No account found. Please sign up.");
-      const u=JSON.parse(stored);
-      if(u.password!==pw)return setErr("Incorrect password.");
-      localStorage.setItem("rise_current_user",email.toLowerCase());onLogin(u);
+    if(mode==="signup"&&!name)return setErr("Please enter your name.");
+    setLoading(true);
+    try{
+      const res=await fetch("/api/auth",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({action:mode,name,email,password:pw}),
+      });
+      const data=await res.json();
+      if(!res.ok){setErr(data.error||"Something went wrong.");setLoading(false);return;}
+      localStorage.setItem("rise_current_user",data.user.email);
+      localStorage.setItem(`rise_name_${data.user.email}`,data.user.name);
+      onLogin(data.user);
+    }catch{
+      setErr("Error connecting. Please try again.");
     }
+    setLoading(false);
   }
+
   return(
     <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.cream} 0%,${C.blush} 50%,${C.accent1} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?"1rem":"2rem"}}>
       <div style={{width:"100%",maxWidth:420}}>
@@ -217,14 +224,18 @@ function LoginScreen({onLogin}){
         </div>
         <div style={{...card,boxShadow:"0 8px 32px rgba(196,151,148,0.15)"}}>
           <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
-            {["login","signup"].map(m=><button key={m} type="button" style={m===mode?btn("fill"):btn("out")} onClick={()=>setMode(m)}>{m==="login"?"Log in":"Sign up"}</button>)}
+            {["login","signup"].map(m=><button key={m} type="button" style={m===mode?btn("fill"):btn("out")} onClick={()=>{setMode(m);setErr("");}}>
+              {m==="login"?"Log in":"Sign up"}
+            </button>)}
           </div>
           <form onSubmit={submit} autoComplete="on">
             {mode==="signup"&&<F label="Your name"><input style={inp} name="name" autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="First name"/></F>}
             <F label="Email"><input style={inp} type="email" name="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com"/></F>
             <F label="Password"><input style={inp} type="password" name="password" autoComplete={mode==="signup"?"new-password":"current-password"} value={pw} onChange={e=>setPw(e.target.value)} placeholder="Password"/></F>
             {err&&<p style={{color:"#c0392b",fontSize:13,margin:"0 0 10px"}}>{err}</p>}
-            <button type="submit" style={{...btn("fill"),width:"100%",marginTop:8,padding:"13px"}}>{mode==="login"?"Enter my dashboard →":"Create my account →"}</button>
+            <button type="submit" disabled={loading} style={{...btn("fill"),width:"100%",marginTop:8,padding:"13px",opacity:loading?0.7:1}}>
+              {loading?"Please wait...":mode==="login"?"Enter my dashboard →":"Create my account →"}
+            </button>
           </form>
         </div>
       </div>
@@ -1251,6 +1262,23 @@ const NAV=[
   {id:"library",label:"Library",icon:"📂"},
 ];
 
+function MobileHeader({user,onLogout}){
+  return(
+    <div style={{background:C.charcoal,padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid rgba(255,255,255,0.08)`,flexShrink:0}}>
+      <div>
+        <div style={{fontSize:9,letterSpacing:"0.2em",color:C.accent2,fontStyle:"italic"}}>my signature</div>
+        <div style={{fontSize:16,color:C.rose,letterSpacing:"0.2em",lineHeight:1.2}}>RISE PLAN</div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <div style={{fontSize:12,color:C.accent2,maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div>
+        <button onClick={onLogout} style={{background:"rgba(196,151,148,0.2)",border:`1px solid rgba(196,151,148,0.3)`,color:C.accent2,cursor:"pointer",fontSize:11,padding:"5px 12px",borderRadius:6,fontFamily:"Georgia,serif",letterSpacing:"0.04em"}}>
+          Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MobileNav({nav,setNav,saved}){
   return(
     <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.charcoal,display:"flex",borderTop:`1px solid rgba(255,255,255,0.1)`,zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
@@ -1287,8 +1315,10 @@ export default function App(){
   useEffect(()=>{
     const email=localStorage.getItem("rise_current_user");
     if(email){
-      const s=localStorage.getItem(`rise_auth_${email}`);
-      if(s){const u=JSON.parse(s);setUser(u);const d=localStorage.getItem(`rise_data_${email}`);if(d)setData(JSON.parse(d));const l=localStorage.getItem(`rise_lib_${email}`);if(l)setSaved(JSON.parse(l));}
+      const name=localStorage.getItem(`rise_name_${email}`)||email;
+      setUser({name,email});
+      const d=localStorage.getItem(`rise_data_${email}`);if(d)setData(JSON.parse(d));
+      const l=localStorage.getItem(`rise_lib_${email}`);if(l)setSaved(JSON.parse(l));
     }
   },[]);
   useEffect(()=>{if(user)localStorage.setItem(`rise_data_${user.email}`,JSON.stringify(data));},[data,user]);
@@ -1332,6 +1362,7 @@ export default function App(){
         ?<LoginScreen onLogin={handleLogin}/>
         :isMobile
           ?<div style={{display:"flex",flexDirection:"column",minHeight:"100vh",background:C.pale,fontFamily:"Georgia,serif"}}>
+            <MobileHeader user={user} onLogout={logout}/>
             {content}
             <MobileNav nav={nav} setNav={setNav} saved={saved}/>
           </div>
