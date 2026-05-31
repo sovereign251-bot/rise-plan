@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, createContext, useContext } from "react";
+
+const MobCtx = createContext(false);
+function useIsMobile() { return useContext(MobCtx); }
 
 const C = {
   rose:"#C49794",roseDark:"#a07370",blush:"#F2CFCC",
@@ -154,8 +157,9 @@ function HeroBanner({title,sub,icon,gradient}){
 }
 
 function ToolGrid({tools,active,onSelect}){
+  const isMobile=useIsMobile();
   return(
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:"1.5rem"}}>
+    <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:10,marginBottom:"1.5rem"}}>
       {tools.map(t=>(
         <div key={t.id} onClick={()=>onSelect(t.id)} style={{
           padding:"1rem 1.25rem",borderRadius:12,cursor:"pointer",
@@ -174,9 +178,11 @@ function ToolGrid({tools,active,onSelect}){
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 function LoginScreen({onLogin}){
+  const isMobile=useIsMobile();
   const[mode,setMode]=useState("login");
   const[email,setEmail]=useState("");const[pw,setPw]=useState("");const[name,setName]=useState("");const[err,setErr]=useState("");
-  function submit(){
+  function submit(e){
+    if(e)e.preventDefault();
     setErr("");
     if(!email||!pw)return setErr("Please enter your email and password.");
     const k=`rise_auth_${email.toLowerCase()}`;
@@ -194,11 +200,11 @@ function LoginScreen({onLogin}){
     }
   }
   return(
-    <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.cream} 0%,${C.blush} 50%,${C.accent1} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",padding:"2rem"}}>
+    <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.cream} 0%,${C.blush} 50%,${C.accent1} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?"1rem":"2rem"}}>
       <div style={{width:"100%",maxWidth:420}}>
         <div style={{textAlign:"center",marginBottom:"2rem"}}>
           <div style={{fontSize:13,letterSpacing:"0.3em",color:C.rose,marginBottom:6,fontFamily:"Georgia,serif",fontStyle:"italic"}}>my signature</div>
-          <div style={{fontSize:64,fontFamily:"Georgia,serif",color:C.rose,letterSpacing:"0.18em",lineHeight:1}}>RISE</div>
+          <div style={{fontSize:isMobile?48:64,fontFamily:"Georgia,serif",color:C.rose,letterSpacing:"0.18em",lineHeight:1}}>RISE</div>
           <div style={{fontSize:13,letterSpacing:"0.25em",color:C.charcoal,marginTop:6,fontFamily:"Georgia,serif"}}>PLAN</div>
           <div style={{display:"flex",justifyContent:"center",gap:20,marginTop:14}}>
             {["Reclaim","Install","Sustain","Expand"].map(p=>(
@@ -211,13 +217,15 @@ function LoginScreen({onLogin}){
         </div>
         <div style={{...card,boxShadow:"0 8px 32px rgba(196,151,148,0.15)"}}>
           <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
-            {["login","signup"].map(m=><button key={m} style={m===mode?btn("fill"):btn("out")} onClick={()=>setMode(m)}>{m==="login"?"Log in":"Sign up"}</button>)}
+            {["login","signup"].map(m=><button key={m} type="button" style={m===mode?btn("fill"):btn("out")} onClick={()=>setMode(m)}>{m==="login"?"Log in":"Sign up"}</button>)}
           </div>
-          {mode==="signup"&&<F label="Your name"><input style={inp} value={name} onChange={e=>setName(e.target.value)} placeholder="First name"/></F>}
-          <F label="Email"><input style={inp} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com"/></F>
-          <F label="Password"><input style={inp} type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Password" onKeyDown={e=>e.key==="Enter"&&submit()}/></F>
-          {err&&<p style={{color:"#c0392b",fontSize:13,margin:"0 0 10px"}}>{err}</p>}
-          <button style={{...btn("fill"),width:"100%",marginTop:8,padding:"13px"}} onClick={submit}>{mode==="login"?"Enter my dashboard →":"Create my account →"}</button>
+          <form onSubmit={submit} autoComplete="on">
+            {mode==="signup"&&<F label="Your name"><input style={inp} name="name" autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="First name"/></F>}
+            <F label="Email"><input style={inp} type="email" name="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com"/></F>
+            <F label="Password"><input style={inp} type="password" name="password" autoComplete={mode==="signup"?"new-password":"current-password"} value={pw} onChange={e=>setPw(e.target.value)} placeholder="Password"/></F>
+            {err&&<p style={{color:"#c0392b",fontSize:13,margin:"0 0 10px"}}>{err}</p>}
+            <button type="submit" style={{...btn("fill"),width:"100%",marginTop:8,padding:"13px"}}>{mode==="login"?"Enter my dashboard →":"Create my account →"}</button>
+          </form>
         </div>
       </div>
     </div>
@@ -226,6 +234,7 @@ function LoginScreen({onLogin}){
 
 // ── HOME ──────────────────────────────────────────────────────────────────────
 function HomeTab({user,data,setNav,saved}){
+  const isMobile=useIsMobile();
   const phases=[
     {id:"reclaim",letter:"R",name:"Reclaim",icon:"🌸",desc:"Separate who you had to become from who you are choosing to become.",check:data.reclaimResult},
     {id:"install",letter:"I",name:"Install",icon:"⚡",desc:"Face your full financial picture and build your product plan.",check:data.installResult},
@@ -249,7 +258,7 @@ function HomeTab({user,data,setNav,saved}){
         <p style={{fontSize:12,color:C.accent2,margin:0}}>{done} of 4 phases activated — {pct}% of your RISE complete</p>
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:"1.25rem"}}>
         {phases.map(p=>(
           <div key={p.id} onClick={()=>setNav(p.id)} style={{...card,marginBottom:0,cursor:"pointer",border:`1.5px solid ${p.check?C.rose:C.blush}`,position:"relative",transition:"transform 0.15s"}}>
             {p.check&&<div style={{position:"absolute",top:10,right:12,fontSize:10,color:C.rose,background:C.blush,borderRadius:10,padding:"2px 8px",letterSpacing:"0.06em"}}>✓ DONE</div>}
@@ -263,7 +272,7 @@ function HomeTab({user,data,setNav,saved}){
         ))}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:"1.25rem"}}>
+      <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"1fr 1fr 1fr",gap:10,marginBottom:"1.25rem"}}>
         {[{id:"pinterest",label:"Pinterest Creator",icon:"📌"},{id:"repurpose",label:"Repurpose",icon:"↻"},{id:"library",label:`Library ${saved.length>0?`(${saved.length})`:""}`,icon:"📂"}].map(t=>(
           <div key={t.id} onClick={()=>setNav(t.id)} style={{...card,marginBottom:0,cursor:"pointer",textAlign:"center",padding:"1.25rem 0.75rem"}}>
             <div style={{fontSize:22,marginBottom:6}}>{t.icon}</div>
@@ -290,6 +299,7 @@ function HomeTab({user,data,setNav,saved}){
 
 // ── RECLAIM ───────────────────────────────────────────────────────────────────
 function ReclaimTab({data,setData,onSave}){
+  const isMobile=useIsMobile();
   const[subtab,setSubtab]=useState("gap");
   const[loading,setLoading]=useState(false);
   const[result,setResult]=useState(data.reclaimResult||"");
@@ -327,14 +337,14 @@ function ReclaimTab({data,setData,onSave}){
       {subtab==="gap"&&(
         <div style={card}>
           <Sec title="Income Gap Calculator" sub="Know your numbers. Build toward your freedom.">
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:"1rem"}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:"1rem"}}>
               <F label="Current monthly income ($)"><input style={inp} type="number" value={cf.cur||""} onChange={e=>setC("cur",e.target.value)} placeholder="e.g. 5000"/></F>
               <F label="Target monthly income ($)"><input style={inp} type="number" value={cf.tar||""} onChange={e=>setC("tar",e.target.value)} placeholder="e.g. 8000"/></F>
               <F label="Product price ($)"><input style={inp} type="number" value={cf.pr||""} onChange={e=>setC("pr",e.target.value)} placeholder="e.g. 97"/></F>
               <F label="Weeks to reach goal"><input style={inp} type="number" value={cf.wks||""} onChange={e=>setC("wks",e.target.value)} placeholder="e.g. 12"/></F>
             </div>
             {(curInc>0||tarInc>0)&&(
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:"1.25rem"}}>
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr 1fr",gap:10,marginBottom:"1.25rem"}}>
                 {[{label:"Monthly gap",val:`$${gap.toLocaleString()}`},{label:"Sales needed",val:units||"—"},{label:"Sales per week",val:perWk||"—"}].map(m=>(
                   <div key={m.label} style={{background:C.cream,borderRadius:12,padding:"14px",border:`1px solid ${C.blush}`,textAlign:"center"}}>
                     <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:6}}>{m.label}</div>
@@ -391,6 +401,7 @@ function ReclaimTab({data,setData,onSave}){
 
 // ── PRODUCT BUILDER (standalone for cleanliness) ──────────────────────────────
 function ProductBuilder({data, setData, onSave}) {
+  const isMobile=useIsMobile();
   const pf = data.product || {};
   const setP = (k,v) => setData(d => ({...d, product:{...d.product,[k]:v}}));
   const [phase, setPhase] = useState('form');
@@ -571,7 +582,7 @@ IMPORTANT: Write the COMPLETE section. This is final, publish-ready content — 
         <F label="Do you have a product name in mind?"><Chips options={["Yes, I have a name","Help me name it"]} selected={pf.hasName||""} onToggle={v=>setP("hasName",v)}/></F>
         {pf.hasName==="Yes, I have a name"&&<F label="Your name"><input style={inp} value={pf.name||""} onChange={e=>setP("name",e.target.value)}/></F>}
         <F label="What's your price point?">
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:6}}>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,marginTop:6}}>
             {[{v:"Low ticket $17–37",d:"Impulse buy, first product, audience building"},{v:"Mid ticket $97–197",d:"Comprehensive, deeper commitment"},{v:"High ticket $197–297",d:"Premium transformation, warm audience required"},{v:"Not sure — help me figure it out",d:""}].map(p=>(
               <div key={p.v} onClick={()=>setP("price",p.v)} style={{padding:"12px",borderRadius:10,border:`1.5px solid ${pf.price===p.v?C.rose:C.blush}`,background:pf.price===p.v?C.cream:C.white,cursor:"pointer"}}>
                 <div style={{fontWeight:600,fontSize:13,color:C.charcoal}}>{p.v}</div>
@@ -981,6 +992,7 @@ function SustainTab({data,setData,onSave}){
 
 // ── EXPAND ────────────────────────────────────────────────────────────────────
 function ExpandTab({data,setData,onSave}){
+  const isMobile=useIsMobile();
   const[view,setView]=useState("mindset");
   const[loading,setLoading]=useState(false);
   const[result,setResult]=useState(data.expandResult||"");
@@ -1017,7 +1029,7 @@ function ExpandTab({data,setData,onSave}){
       {view==="mindset"&&<>
         <div style={card}>
           <Sec title="What would you like to work on today?">
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:"1.25rem"}}>
+            <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,marginBottom:"1.25rem"}}>
               {mindset.map(m=><div key={m.label} onClick={()=>set("topic",m.label)} style={{padding:"12px 14px",borderRadius:10,border:`1.5px solid ${f.topic===m.label?C.rose:C.blush}`,background:f.topic===m.label?C.cream:C.white,cursor:"pointer"}}>
                 <div style={{fontWeight:600,fontSize:13,color:C.charcoal}}>{m.label}</div>
                 {m.desc&&<div style={{fontSize:11,color:"#aaa",marginTop:2}}>{m.desc}</div>}
@@ -1065,6 +1077,7 @@ function ExpandTab({data,setData,onSave}){
 
 // ── POWER TOOLS ───────────────────────────────────────────────────────────────
 function PowerToolsTab({data,setData,onSave}){
+  const isMobile=useIsMobile();
   const[tool,setTool]=useState("price");
   const[loading,setLoading]=useState(false);
   const[result,setResult]=useState("");
@@ -1100,7 +1113,7 @@ function PowerToolsTab({data,setData,onSave}){
           <Sec title="Price Calculator" sub="Know your worth. Price it right.">
             <F label="Product type"><Chips options={fmts} selected={pf.type||""} onToggle={v=>setP("type",v)}/></F>
             <F label="What outcome does your product create?">
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:6}}>
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,marginTop:6}}>
                 {[{v:"Quick wins",d:"Saves time/solves a specific problem"},{v:"Skill upgrade",d:"Teaches a new skill/process they can use repeatedly"},{v:"Life chapter shift",d:"Changes a major area of life — health, money, relationships, career"},{v:"Identity transformation",d:"Redefines who they are and how they see themselves"}].map(o=>(
                   <div key={o.v} onClick={()=>setP("outcome",o.v)} style={{padding:"12px",borderRadius:10,border:`1.5px solid ${pf.outcome===o.v?C.rose:C.blush}`,background:pf.outcome===o.v?C.cream:C.white,cursor:"pointer"}}>
                     <div style={{fontWeight:600,fontSize:13,color:C.charcoal}}>{o.v}</div>
@@ -1238,12 +1251,38 @@ const NAV=[
   {id:"library",label:"Library",icon:"📂"},
 ];
 
+function MobileNav({nav,setNav,saved}){
+  return(
+    <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.charcoal,display:"flex",borderTop:`1px solid rgba(255,255,255,0.1)`,zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
+      {NAV.map(n=>{
+        const active=nav===n.id;
+        return(
+          <div key={n.id} onClick={()=>setNav(n.id)} style={{flex:1,padding:"8px 2px 6px",textAlign:"center",cursor:"pointer",borderTop:active?`2px solid ${C.rose}`:"2px solid transparent"}}>
+            {n.letter
+              ?<div style={{width:22,height:22,borderRadius:"50%",background:active?C.rose:"rgba(196,151,148,0.2)",color:active?C.white:C.accent2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,margin:"0 auto 2px"}}>{n.icon}</div>
+              :<div style={{fontSize:15,color:active?C.rose:C.accent2,marginBottom:2}}>{n.icon}</div>
+            }
+            <div style={{fontSize:8,color:active?C.rose:C.accent2,letterSpacing:"0.04em",lineHeight:1}}>{n.label}{n.id==="library"&&saved.length>0?` (${saved.length})`:""}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function App(){
+  const[isMobile,setIsMobile]=useState(()=>window.innerWidth<640);
   const[user,setUser]=useState(null);
   const[nav,setNav]=useState("home");
   const[data,setData]=useState({});
   const[saved,setSaved]=useState([]);
   const[sideOpen,setSideOpen]=useState(true);
+
+  useEffect(()=>{
+    const h=()=>setIsMobile(window.innerWidth<640);
+    window.addEventListener("resize",h);
+    return()=>window.removeEventListener("resize",h);
+  },[]);
 
   useEffect(()=>{
     const email=localStorage.getItem("rise_current_user");
@@ -1270,60 +1309,71 @@ export default function App(){
     const a=document.createElement("a");a.href=u;a.download=`RISE-Library-${new Date().toISOString().slice(0,10)}.txt`;a.click();URL.revokeObjectURL(u);
   }
 
-  if(!user)return<LoginScreen onLogin={handleLogin}/>;
-
   const SIDE_W=sideOpen?200:60;
 
-  return(
-    <div style={{display:"flex",minHeight:"100vh",background:C.pale,fontFamily:"Georgia,serif"}}>
-      <div style={{width:SIDE_W,minHeight:"100vh",background:C.charcoal,display:"flex",flexDirection:"column",transition:"width 0.25s ease",flexShrink:0,position:"relative",zIndex:10}}>
-        <div style={{padding:sideOpen?"1.25rem 1rem":"1rem 0",borderBottom:`1px solid rgba(255,255,255,0.08)`,textAlign:sideOpen?"left":"center"}}>
-          {sideOpen
-            ?<><div style={{fontSize:10,letterSpacing:"0.25em",color:C.accent2,fontStyle:"italic",marginBottom:2}}>my signature</div>
-              <div style={{fontSize:22,color:C.rose,letterSpacing:"0.2em"}}>RISE</div>
-              <div style={{fontSize:10,letterSpacing:"0.15em",color:C.accent2}}>PLAN</div></>
-            :<div style={{fontSize:18,color:C.rose,letterSpacing:"0.15em"}}>R</div>
-          }
-        </div>
-        <nav style={{flex:1,padding:"0.75rem 0"}}>
-          {NAV.map(n=>{
-            const active=nav===n.id;
-            return(
-              <div key={n.id} onClick={()=>setNav(n.id)} style={{display:"flex",alignItems:"center",gap:sideOpen?10:0,padding:sideOpen?"10px 1rem":"10px 0",justifyContent:sideOpen?"flex-start":"center",cursor:"pointer",background:active?"rgba(196,151,148,0.15)":"transparent",borderLeft:active?`3px solid ${C.rose}`:"3px solid transparent",transition:"all 0.15s",marginBottom:2}}>
-                <div style={{width:28,height:28,borderRadius:n.letter?"50%":"8px",background:active?C.rose:n.letter?"rgba(196,151,148,0.2)":"transparent",color:active?C.white:C.accent2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:n.letter?13:16,fontWeight:n.letter?700:400,flexShrink:0}}>
-                  {n.icon}
-                </div>
-                {sideOpen&&<span style={{fontSize:13,color:active?C.white:C.accent2,letterSpacing:"0.03em"}}>{n.label}{n.id==="library"&&saved.length>0?` (${saved.length})`:""}</span>}
-              </div>
-            );
-          })}
-        </nav>
-        <div style={{padding:"0.75rem",borderTop:`1px solid rgba(255,255,255,0.08)`}}>
-          {sideOpen
-            ?<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{fontSize:12,color:C.accent2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:110}}>{user.name}</div>
-              <button style={{background:"transparent",border:"none",color:C.accent2,cursor:"pointer",fontSize:12}} onClick={logout}>Out</button>
-            </div>
-            :<button style={{background:"transparent",border:"none",color:C.accent2,cursor:"pointer",fontSize:16,width:"100%"}} onClick={logout}>↩</button>
-          }
-        </div>
-        <button onClick={()=>setSideOpen(o=>!o)} style={{position:"absolute",top:"50%",right:-12,transform:"translateY(-50%)",width:24,height:24,borderRadius:"50%",background:C.rose,border:"none",color:C.white,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
-          {sideOpen?"‹":"›"}
-        </button>
-      </div>
-
-      <div style={{flex:1,overflow:"auto"}}>
-        <div style={{maxWidth:760,margin:"0 auto",padding:"1.75rem 1.5rem"}}>
-          {nav==="home"&&<HomeTab user={user} data={data} setNav={setNav} saved={saved}/>}
-          {nav==="reclaim"&&<ReclaimTab data={data} setData={setData} onSave={saveItem}/>}
-          {nav==="install"&&<InstallTab data={data} setData={setData} onSave={saveItem}/>}
-          {nav==="sustain"&&<SustainTab data={data} setData={setData} onSave={saveItem}/>}
-          {nav==="expand"&&<ExpandTab data={data} setData={setData} onSave={saveItem}/>}
-          {nav==="power"&&<PowerToolsTab data={data} setData={setData} onSave={saveItem}/>}
-          {nav==="pinterest"&&<PinterestTab onSave={saveItem}/>}
-          {nav==="library"&&<LibraryTab saved={saved} onDelete={deleteItem} onExport={exportLib}/>}
-        </div>
+  const content=(
+    <div style={{flex:1,overflow:"auto",paddingBottom:isMobile?70:0}}>
+      <div style={{maxWidth:760,margin:"0 auto",padding:isMobile?"1rem":"1.75rem 1.5rem"}}>
+        {nav==="home"&&<HomeTab user={user} data={data} setNav={setNav} saved={saved}/>}
+        {nav==="reclaim"&&<ReclaimTab data={data} setData={setData} onSave={saveItem}/>}
+        {nav==="install"&&<InstallTab data={data} setData={setData} onSave={saveItem}/>}
+        {nav==="sustain"&&<SustainTab data={data} setData={setData} onSave={saveItem}/>}
+        {nav==="expand"&&<ExpandTab data={data} setData={setData} onSave={saveItem}/>}
+        {nav==="power"&&<PowerToolsTab data={data} setData={setData} onSave={saveItem}/>}
+        {nav==="pinterest"&&<PinterestTab onSave={saveItem}/>}
+        {nav==="library"&&<LibraryTab saved={saved} onDelete={deleteItem} onExport={exportLib}/>}
       </div>
     </div>
+  );
+
+  return(
+    <MobCtx.Provider value={isMobile}>
+      {!user
+        ?<LoginScreen onLogin={handleLogin}/>
+        :isMobile
+          ?<div style={{display:"flex",flexDirection:"column",minHeight:"100vh",background:C.pale,fontFamily:"Georgia,serif"}}>
+            {content}
+            <MobileNav nav={nav} setNav={setNav} saved={saved}/>
+          </div>
+          :<div style={{display:"flex",minHeight:"100vh",background:C.pale,fontFamily:"Georgia,serif"}}>
+            <div style={{width:SIDE_W,minHeight:"100vh",background:C.charcoal,display:"flex",flexDirection:"column",transition:"width 0.25s ease",flexShrink:0,position:"relative",zIndex:10}}>
+              <div style={{padding:sideOpen?"1.25rem 1rem":"1rem 0",borderBottom:`1px solid rgba(255,255,255,0.08)`,textAlign:sideOpen?"left":"center"}}>
+                {sideOpen
+                  ?<><div style={{fontSize:10,letterSpacing:"0.25em",color:C.accent2,fontStyle:"italic",marginBottom:2}}>my signature</div>
+                    <div style={{fontSize:22,color:C.rose,letterSpacing:"0.2em"}}>RISE</div>
+                    <div style={{fontSize:10,letterSpacing:"0.15em",color:C.accent2}}>PLAN</div></>
+                  :<div style={{fontSize:18,color:C.rose,letterSpacing:"0.15em"}}>R</div>
+                }
+              </div>
+              <nav style={{flex:1,padding:"0.75rem 0"}}>
+                {NAV.map(n=>{
+                  const active=nav===n.id;
+                  return(
+                    <div key={n.id} onClick={()=>setNav(n.id)} style={{display:"flex",alignItems:"center",gap:sideOpen?10:0,padding:sideOpen?"10px 1rem":"10px 0",justifyContent:sideOpen?"flex-start":"center",cursor:"pointer",background:active?"rgba(196,151,148,0.15)":"transparent",borderLeft:active?`3px solid ${C.rose}`:"3px solid transparent",transition:"all 0.15s",marginBottom:2}}>
+                      <div style={{width:28,height:28,borderRadius:n.letter?"50%":"8px",background:active?C.rose:n.letter?"rgba(196,151,148,0.2)":"transparent",color:active?C.white:C.accent2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:n.letter?13:16,fontWeight:n.letter?700:400,flexShrink:0}}>
+                        {n.icon}
+                      </div>
+                      {sideOpen&&<span style={{fontSize:13,color:active?C.white:C.accent2,letterSpacing:"0.03em"}}>{n.label}{n.id==="library"&&saved.length>0?` (${saved.length})`:""}</span>}
+                    </div>
+                  );
+                })}
+              </nav>
+              <div style={{padding:"0.75rem",borderTop:`1px solid rgba(255,255,255,0.08)`}}>
+                {sideOpen
+                  ?<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div style={{fontSize:12,color:C.accent2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:110}}>{user.name}</div>
+                    <button style={{background:"transparent",border:"none",color:C.accent2,cursor:"pointer",fontSize:12}} onClick={logout}>Out</button>
+                  </div>
+                  :<button style={{background:"transparent",border:"none",color:C.accent2,cursor:"pointer",fontSize:16,width:"100%"}} onClick={logout}>↩</button>
+                }
+              </div>
+              <button onClick={()=>setSideOpen(o=>!o)} style={{position:"absolute",top:"50%",right:-12,transform:"translateY(-50%)",width:24,height:24,borderRadius:"50%",background:C.rose,border:"none",color:C.white,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+                {sideOpen?"‹":"›"}
+              </button>
+            </div>
+            {content}
+          </div>
+      }
+    </MobCtx.Provider>
   );
 }
