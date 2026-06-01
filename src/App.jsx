@@ -1876,7 +1876,7 @@ function LibraryTab({saved,onDelete,onExport}){
 // ── SETTINGS MODAL ───────────────────────────────────────────────────────────
 function SettingsModal({user,onClose,onLogout}){
   const isMobile=useIsMobile();
-  const cancelEmail="hello@purelyempowered.com";
+  const cancelEmail="support@purelyempowered.com";
   return(
     <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(73,71,71,0.5)",display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center"}}>
       <div onClick={e=>e.stopPropagation()} style={{background:C.white,borderRadius:isMobile?"24px 24px 0 0":"24px",padding:"2rem",width:"100%",maxWidth:isMobile?"100%":430,boxShadow:"0 -8px 40px rgba(73,71,71,0.18)"}}>
