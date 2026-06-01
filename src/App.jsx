@@ -825,44 +825,56 @@ function SustainTab({data,setData,onSave}){
     {group:"Build trust",items:["Proof","Testimonials","Behind the scenes"]},
     {group:"Inspire & motivate",items:["Mindset","Aspirational","Big picture vision"]},
   ];
+  const goals=[
+    {id:"growth",icon:"📈",name:"Growth Content",desc:"Reach new audiences & go viral"},
+    {id:"sells",icon:"💰",name:"Selling Content",desc:"Drive DMs, clicks & conversions"},
+    {id:"entertain",icon:"🎭",name:"Entertain & Story",desc:"Relatable moments & personal stories"},
+    {id:"educate",icon:"💡",name:"Educate & Add Value",desc:"Tips, tutorials, teach your expertise"},
+    {id:"trust",icon:"🤝",name:"Build Trust",desc:"Proof, testimonials, behind the scenes"},
+    {id:"inspire",icon:"✨",name:"Inspire & Motivate",desc:"Mindset, aspirational, big-picture vision"},
+  ];
+  const goalFrameworks={
+    growth:["pain-hook","narrow","reel"],
+    sells:["social-proof","carousel","pain-hook"],
+    entertain:["reel","narrow"],
+    educate:["carousel","narrow"],
+    trust:["social-proof","carousel"],
+    inspire:["reel","pain-hook"],
+  };
   const frameworks=[
-    {id:"pain-hook",icon:"🎯",name:"Pain-to-Hook",desc:"Turn your audience's #1 pain into hooks under 10 words that stop the scroll cold"},
-    {id:"narrow",icon:"🔬",name:"Narrow Content",desc:"Drill a broad topic down to the most specific, underserved angle — feels written for one person"},
-    {id:"reel",icon:"🎬",name:"30-Sec Reel Script",desc:"Hook → Tension → Insight → CTA. Short sentences only. Zero fluff. Max watch time"},
-    {id:"social-proof",icon:"⭐",name:"Social Proof Rewrite",desc:"Paste a result or testimonial → before/after/turning point → curiosity phrases under 10 words"},
+    {id:"pain-hook",icon:"🎯",name:"Pain-to-Hook",desc:"Hooks under 10 words that stop the scroll and open a loop they need to close"},
+    {id:"narrow",icon:"🔬",name:"Narrow Content",desc:"Hyper-specific angle almost nobody covers — feels written for one exact person"},
+    {id:"reel",icon:"🎬",name:"Reel Script",desc:"30-second video: Hook → Tension → Insight → CTA. Punchy, fast, zero fluff"},
+    {id:"social-proof",icon:"⭐",name:"Social Proof",desc:"Testimonial → before/after/turning point → marketing phrases that sell without selling"},
     {id:"carousel",icon:"📱",name:"Saveable Carousel",desc:"Every slide is a lightbulb moment that could stand alone as its own post"},
-    {id:"cta",icon:"💬",name:"CTA Generator",desc:"Comment [keyword] if you are [dream customer] trying to [outcome] — polarizing and specific"},
   ];
 
   function getFrameworkPrompts(id){
-    const ctx=`Niche: ${f.niche||"nurse entrepreneurs"}\nAudience: ${f.audience||"divorced nurse moms building digital businesses"}\nProduct/offer: ${f.product||""}\nTopic/context: ${f.writeWithMe||""}`;
+    const ctx=`Niche: ${f.niche||"nurse entrepreneurs"}\nAudience: ${f.audience||"divorced nurse moms building digital businesses"}\nProduct/offer: ${f.product||""}\nTopic/context: ${f.writeWithMe||""}\nGoal: ${goals.find(g=>g.id===f.goal)?.name||""}`;
+    const ctaRule=`\n\nALWAYS end with:\nCAPTION CTA: Comment [KEYWORD] if you are [hyper-specific identity] trying to [very specific outcome]. (KEYWORD = 1–2 memorable words)`;
     const m={
       "pain-hook":{
-        sys:`You are a viral hook copywriter for divorced nurse moms building digital businesses. Your hooks stop the scroll cold and make people feel deeply seen. RULES: Every hook under 10 words. Lead with a visceral, specific pain — not platitudes. Make it feel like you're reading their diary. Create an open loop they NEED to close. Write 8 hooks. Numbered list only. No explanations. No filler. Just the hooks.`,
+        sys:`You are a viral hook copywriter for divorced nurse moms building digital businesses. Your hooks stop the scroll cold and make people feel deeply seen.\n\nOutput:\n1. Write 8 hooks — numbered list, each under 10 words. Lead with visceral, specific pain. Feel like you're reading their diary. Create an open loop they NEED to close.\n2. Pick the strongest hook and write a full caption (3–4 sentences, relatable opener + value + CTA).${ctaRule}`,
         prompt:ctx+`\nTone: ${f.tone||"raw and real"}\nPlatform: ${f.platform||""}`,
       },
       "narrow":{
-        sys:`You are a hyper-specific content strategist. Your job is to take the broad topic and narrow it to the most underserved, invisible sub-problem that feels written for ONE specific person. Generic content is your enemy.\n\nOutput format:\n1. THE NARROW ANGLE (one sentence — the exact specific angle almost no creator is talking about)\n2. WHY THIS HITS (2 sentences — why this creates instant "that's me" recognition)\n3. THE CONTENT (full post/caption written from this narrow angle — specific names, specific numbers, specific situations. Zero filler. Sounds like a real woman, not a template.)`,
+        sys:`You are a hyper-specific content strategist. Generic content is your enemy.\n\nOutput format:\n1. THE NARROW ANGLE (one sentence — the exact specific angle almost no creator is talking about)\n2. WHY THIS HITS (2 sentences — why this creates instant "that's me" recognition)\n3. THE CONTENT (full post/caption — specific names, numbers, situations. Zero filler. Sounds like a real woman, not a template.)${ctaRule}`,
         prompt:ctx,
       },
       "reel":{
-        sys:`You are a viral reel script writer for divorced nurse moms building digital businesses. Write a 30-second reel script engineered for maximum hook rate and watch time.\n\nSTRUCTURE (label every section):\nHOOK (0–3s): One line. Creates open loop. Forces them to keep watching. Scroll-stopping.\nTENSION (3–12s): Build the pain. Make them feel it. 2–3 short sentences.\nINSIGHT (12–22s): The reframe. Changes how they see the problem. Specific. 2–3 sentences.\nCTA (22–30s): "Comment [WORD] if you are [specific identity] trying to [specific outcome]."\n\nRULES: 3–5 words per sentence MAX. Zero fluff. No transitions or filler words. Every word earns its place. Punchy, fast, raw, real. Label each section on its own line.`,
+        sys:`You are a viral reel script writer for divorced nurse moms building digital businesses. Write a 30-second reel script engineered for maximum hook rate and watch time.\n\nSTRUCTURE (label every section):\nHOOK (0–3s): One line. Creates open loop. Scroll-stopping.\nTENSION (3–12s): Build the pain. 2–3 short sentences.\nINSIGHT (12–22s): The reframe. Specific. 2–3 sentences.\nCTA (22–30s): "Comment [WORD] if you are [specific identity] trying to [specific outcome]."\n\nRULES: 3–5 words per sentence MAX. Zero fluff. Every word earns its place. Label each section.`,
         prompt:ctx+`\nPlatform: ${f.platform||"Instagram/TikTok"}\nTone: ${f.tone||""}`,
       },
       "social-proof":{
-        sys:`You are a social proof copywriter who extracts conversion gold from testimonials.\n\nOutput format:\nBEFORE: [their exact pain state — specific]\nTURNING POINT: [the precise moment everything shifted]\nAFTER: [the specific result]\n\n---\nMARKETING PHRASES:\nWrite 10 short phrases under 10 words each. Each phrase must: create curiosity, make the dream customer say "that's me," use before/after contrast or the turning point. One phrase per line. No numbering. No punctuation at end. Make each one feel like a punch.`,
-        prompt:`Testimonial/result: ${f.testimonial||f.writeWithMe||""}\nNiche: ${f.niche||""}\nDream customer: ${f.audience||""}`,
+        sys:`You are a social proof copywriter who extracts conversion gold from testimonials.\n\nOutput format:\nBEFORE: [exact pain state — specific]\nTURNING POINT: [the precise moment everything shifted]\nAFTER: [the specific result]\n\n---\nMARKETING PHRASES:\nWrite 10 short phrases under 10 words each. Create curiosity, make the dream customer say "that's me," use before/after contrast. One per line. No numbering. No punctuation at end.${ctaRule}`,
+        prompt:`Testimonial/result: ${f.testimonial||f.writeWithMe||""}\nNiche: ${f.niche||""}\nDream customer: ${f.audience||""}\nOffer: ${f.product||""}`,
       },
       "carousel":{
-        sys:`You are a saveable carousel strategist. Every single slide must be so specific and clear it could stand alone as its own post. Each slide creates a lightbulb moment — not just informs, REFRAMES how they see the problem.\n\nSTRUCTURE:\nSLIDE 1 — HOOK: Bold, specific, creates pattern interrupt. Makes them stop and swipe.\nSLIDES 2–6 — INSIGHT SLIDES: One reframe per slide. 15–20 words max each. "I never thought of it this way" energy. Not advice — a shift in perspective.\nSLIDE 7 — CTA: "Comment [KEYWORD] if you are [specific dream customer] trying to [specific outcome]."\n\nRULES: One idea per slide. No filler. No "in this carousel." No transitions. Every slide = mic drop. Label each slide clearly: SLIDE 1, SLIDE 2, etc.`,
+        sys:`You are a saveable carousel strategist. Every slide must be so clear it could stand alone as its own post. Each slide creates a lightbulb moment — not informs, REFRAMES.\n\nSTRUCTURE:\nSLIDE 1 — HOOK: Bold, specific, creates pattern interrupt. Makes them stop and swipe.\nSLIDES 2–6 — INSIGHT SLIDES: One reframe per slide. 15–20 words max. "I never thought of it this way" energy.\nSLIDE 7 — CTA: "Comment [KEYWORD] if you are [specific dream customer] trying to [specific outcome]."\n\nLabel each slide. One idea per slide. No filler. Every slide = mic drop.`,
         prompt:ctx+`\nTone: ${f.tone||"bold and direct"}`,
       },
-      "cta":{
-        sys:`You are a CTA specialist who writes polarizing, specific calls-to-action that filter in dream customers and filter out everyone else. The right person should feel uncomfortably seen.\n\nFORMAT (use exactly for every CTA): "Comment [KEYWORD] if you are [hyper-specific dream customer description] trying to [very specific dream outcome]."\n\nRULES:\n- KEYWORD: memorable, relevant, 1–2 words max\n- Dream customer: SO specific it excludes most people — that's the point\n- Dream outcome: name the exact transformation, not a vague goal\n- Write 6 CTAs. Vary keywords and angles. No two should feel similar.\n- Each one should make the exact right person stop scrolling.`,
-        prompt:ctx+`\nOffer: ${f.product||""}`,
-      },
     };
-    return m[id]||{sys:`You are a content strategist and copywriter for divorced nurse moms building digital businesses. Write powerful, specific, conversion-worthy content. No generic filler — every word should feel like it came from a real woman who's been through hard things and is ready to rise.`,prompt:ctx};
+    return m[id]||{sys:`You are a content strategist and copywriter for divorced nurse moms building digital businesses. Write powerful, specific, conversion-worthy content. End with a strong Comment CTA. No generic filler.`,prompt:ctx};
   }
 
   async function generate(sys,prompt,label="Content"){
@@ -879,18 +891,28 @@ function SustainTab({data,setData,onSave}){
 
   async function generateCalendar(){
     setCalLoading(true);setCalDays([]);
-    const sys=`You are a content calendar strategist for divorced nurse moms building digital businesses. Create a 30-day content calendar that strategically distributes ALL SIX proven content frameworks across the month for maximum variety and results.
+    const isAudience=f.calMode==="audience";
+    const distribution=isAudience
+      ?`FRAMEWORK DISTRIBUTION — ALL 30 DAYS ARE GROWTH & AWARENESS CONTENT. No selling. Build audience, reach, and trust first.
+DAYS 1–10: PAIN-TO-HOOK (Growth) — viral hooks under 10 words that hit a raw, specific pain point
+DAYS 11–20: NARROW CONTENT (Growth) — hyper-specific angle almost nobody covers; feels written for one person
+DAYS 21–30: REEL SCRIPT (Growth) — 30-second video scripts for maximum reach and watch time`
+      :`FRAMEWORK DISTRIBUTION — STRATEGIC MIX OF GROWTH + SELLING + TRUST + INSPIRATION:
+DAYS 1–6: PAIN-TO-HOOK (Growth) — viral hooks, reach new audiences
+DAYS 7–10: NARROW CONTENT (Growth) — hyper-specific angles, shareable content
+DAYS 11–13: REEL SCRIPT (Growth) — scroll-stopping 30-sec video scripts
+DAYS 14–18: SOCIAL PROOF (Selling) — testimonials, before/after, turning points that convert
+DAYS 19–23: SAVEABLE CAROUSEL (Selling) — lightbulb carousel slides that educate and sell
+DAYS 24–26: SOCIAL PROOF (Trust) — behind the scenes, real moments, honest results
+DAYS 27–28: NARROW CONTENT (Trust) — specific credibility-building takes
+DAYS 29–30: REEL SCRIPT (Inspire) — mindset reframes and big-picture vision`;
 
-FRAMEWORK DISTRIBUTION — follow this exactly:
-Days 1–5: PAIN-TO-HOOK — viral hooks under 10 words that hit a raw, specific pain point
-Days 6–10: NARROW CONTENT — hyper-specific angle almost nobody else is covering; feels written for one person
-Days 11–15: REEL SCRIPT — 30-second video structured as Hook → Tension → Insight → CTA
-Days 16–20: SOCIAL PROOF — before/after/turning point structure + marketing phrases that sell without selling
-Days 21–25: SAVEABLE CAROUSEL — each "slide" is one lightbulb reframe that could stand alone as its own post
-Days 26–30: CTA GENERATOR — polarizing "Comment X if you are Y trying to Z" that filters in dream buyers only
+    const sys=`You are a content calendar strategist for divorced nurse moms building digital businesses.
+
+${distribution}
 
 For EACH day output EXACTLY this format:
-DAY [number] — [FRAMEWORK NAME]
+DAY [number] — [FRAMEWORK NAME] — [GOAL]
 HOOK: [Scroll-stopping opener under 10 words]
 CAPTION: [3–4 sentences: relatable opener + value + CTA. Max 60 words.]
 SCRIPT:
@@ -905,14 +927,16 @@ Output all 30 days in order. No extra text. No commentary. Just the 30 days.`;
     const raw=await callClaude(sys,prompt,4000);
     const blocks=raw.split(/\n---+\n?/).filter(b=>b.trim());
     const days=blocks.map(block=>{
-      const dayMatch=block.match(/DAY\s*(\d+)(?:\s*[—\-]+\s*(.+))?/i);
+      const headerMatch=block.match(/DAY\s*(\d+)\s*[—\-]+\s*([^—\-\n]+?)(?:\s*[—\-]+\s*([^\n]+))?[\n]/i);
+      const dayMatch=headerMatch||block.match(/DAY\s*(\d+)/i);
       if(!dayMatch)return null;
       const hookMatch=block.match(/^HOOK:\s*(.+)/im);
       const captionMatch=block.match(/CAPTION:\s*([\s\S]+?)(?=\nSCRIPT:|---)/i);
       const scriptMatch=block.match(/SCRIPT:\s*([\s\S]+?)$/i);
       return{
         day:parseInt(dayMatch[1]),
-        framework:dayMatch[2]?.trim()||"",
+        framework:headerMatch?.[2]?.trim()||"",
+        goal:headerMatch?.[3]?.trim()||"",
         hook:hookMatch?.[1]?.trim()||"",
         caption:captionMatch?.[1]?.trim()||"",
         script:scriptMatch?.[1]?.trim()||"",
@@ -961,38 +985,69 @@ Output all 30 days in order. No extra text. No commentary. Just the 30 days.`;
 
       {tool==="studio"&&(
         <div style={card}>
-          <Sec title="Content Studio" sub="Pick a framework → add your topic or story → generate one high-converting piece.">
-            <F label="1. Choose your content framework">
-              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:8,marginTop:4}}>
-                {frameworks.map(fw=>(
-                  <div key={fw.id} onClick={()=>set("framework",fw.id)} style={{
-                    padding:"12px",borderRadius:10,cursor:"pointer",
-                    border:`1.5px solid ${f.framework===fw.id?C.rose:C.blush}`,
-                    background:f.framework===fw.id?C.cream:C.white,
+          <Sec title="Content Studio" sub="3 steps: pick your goal → pick your angle → add your topic. Done.">
+
+            {/* Step 1: Goal */}
+            <div style={{marginBottom:"1.25rem"}}>
+              <div style={{fontSize:11,color:C.roseDark,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>Step 1 — What do you want this content to do?</div>
+              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"repeat(3,1fr)",gap:8}}>
+                {goals.map(g=>(
+                  <div key={g.id} onClick={()=>{set("goal",g.id);set("framework","");}} style={{
+                    padding:"14px 10px",borderRadius:12,cursor:"pointer",textAlign:"center",
+                    border:`1.5px solid ${f.goal===g.id?C.rose:C.blush}`,
+                    background:f.goal===g.id?C.cream:C.white,
                     transition:"all 0.15s",
                   }}>
-                    <div style={{fontSize:18,marginBottom:4}}>{fw.icon}</div>
-                    <div style={{fontWeight:600,fontSize:13,color:C.charcoal,marginBottom:3}}>{fw.name}</div>
-                    <div style={{fontSize:11,color:"#999",lineHeight:1.45}}>{fw.desc}</div>
+                    <div style={{fontSize:22,marginBottom:5}}>{g.icon}</div>
+                    <div style={{fontWeight:600,fontSize:12,color:C.charcoal,marginBottom:2}}>{g.name}</div>
+                    <div style={{fontSize:10,color:"#aaa",lineHeight:1.4}}>{g.desc}</div>
                   </div>
                 ))}
               </div>
-            </F>
-            {f.framework==="social-proof"
-              ?<F label="2. Paste your testimonial, result or DM" hint="Paste it exactly as they wrote/said it — the rawer the better">
-                <textarea style={{...ta,minHeight:100}} value={f.testimonial||""} onChange={e=>set("testimonial",e.target.value)} placeholder="e.g. 'I literally cried when I paid off my credit card. I never thought a nurse's salary could do that...'"/>
-              </F>
-              :<F label="2. Topic, angle or context" hint="What's this content about? Any specific story, number or detail makes it 10x better">
-                <textarea style={ta} value={f.writeWithMe||""} onChange={e=>set("writeWithMe",e.target.value)} placeholder="e.g. How I paid off $8k in debt on a nurse's salary while raising 2 kids alone..."/>
-              </F>
-            }
-            {(!f.niche&&!f.audience)&&(
-              <div style={{background:C.cream,border:`1px solid ${C.blush}`,borderRadius:10,padding:"10px 14px",fontSize:12,color:C.roseDark,marginTop:4}}>
-                💡 Fill in your <strong>niche, audience & tone</strong> in the context card above for better results.
+            </div>
+
+            {/* Step 2: Framework (filtered by goal) */}
+            {f.goal&&(
+              <div style={{marginBottom:"1.25rem"}}>
+                <div style={{fontSize:11,color:C.roseDark,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>Step 2 — How should it be written?</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {(goalFrameworks[f.goal]||[]).map(fwId=>{
+                    const fw=frameworks.find(x=>x.id===fwId);
+                    if(!fw)return null;
+                    return(
+                      <div key={fw.id} onClick={()=>set("framework",fw.id)} style={{
+                        flex:"1 1 140px",padding:"12px",borderRadius:10,cursor:"pointer",
+                        border:`1.5px solid ${f.framework===fw.id?C.rose:C.blush}`,
+                        background:f.framework===fw.id?C.cream:C.white,
+                        transition:"all 0.15s",
+                      }}>
+                        <div style={{fontSize:18,marginBottom:4}}>{fw.icon}</div>
+                        <div style={{fontWeight:600,fontSize:12,color:C.charcoal,marginBottom:3}}>{fw.name}</div>
+                        <div style={{fontSize:10,color:"#aaa",lineHeight:1.4}}>{fw.desc}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Topic / Testimonial */}
+            {f.framework&&(
+              <div>
+                <div style={{fontSize:11,color:C.roseDark,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>Step 3 — {f.framework==="social-proof"?"Paste your testimonial or result":"Give it your story or topic"}</div>
+                {f.framework==="social-proof"
+                  ?<textarea style={{...ta,minHeight:100}} value={f.testimonial||""} onChange={e=>set("testimonial",e.target.value)} placeholder="Paste it exactly as they wrote/said it — the rawer the better. e.g. 'I literally cried when I paid off my credit card...'"/>
+                  :<textarea style={ta} value={f.writeWithMe||""} onChange={e=>set("writeWithMe",e.target.value)} placeholder="e.g. How I paid off $8k in debt on a nurse's salary while raising 2 kids alone..."/>
+                }
+                {(!f.niche&&!f.audience)&&(
+                  <div style={{background:C.cream,border:`1px solid ${C.blush}`,borderRadius:10,padding:"10px 14px",fontSize:12,color:C.roseDark,marginTop:8}}>
+                    💡 Fill in your <strong>niche, audience & tone</strong> in the context card above for better results.
+                  </div>
+                )}
               </div>
             )}
           </Sec>
-          <button style={btn("fill")} onClick={()=>{const{sys,prompt}=getFrameworkPrompts(f.framework||"pain-hook");const fw=frameworks.find(f2=>f2.id===(f.framework||"pain-hook"));generate(sys,prompt,`Content Studio — ${fw?.name||"Content"}`)}}>Generate content →</button>
+          {f.framework&&<button style={btn("fill")} onClick={()=>{const{sys,prompt}=getFrameworkPrompts(f.framework);const fw=frameworks.find(f2=>f2.id===f.framework);const g=goals.find(g2=>g2.id===f.goal);generate(sys,prompt,`${g?.name||"Content"} — ${fw?.name||""}`);}}>Generate →</button>}
           {loading&&<Spinner/>}
           {result&&<><div style={aiBox}>{stripMarkdown(result)}</div><div style={{display:"flex",gap:8,alignItems:"center",marginTop:10}}><button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(result))}>Copy</button><span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span></div></>}
         </div>
@@ -1186,26 +1241,39 @@ Output all 30 days in order. No extra text. No commentary. Just the 30 days.`;
 
       {tool==="calendar"&&(
         <div style={card}>
-          <Sec title="30-Day Content Calendar" sub="All 6 content frameworks distributed across 30 days — hooks, captions & scripts, copy-paste ready for Canva.">
-            <div style={{background:C.cream,border:`1px solid ${C.blush}`,borderRadius:12,padding:"12px 14px",marginBottom:"1rem",fontSize:12,color:C.charcoal,lineHeight:1.7}}>
-              <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.12em",fontWeight:700,marginBottom:6}}>HOW YOUR FRAMEWORKS ARE DISTRIBUTED</div>
-              <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:"4px 16px"}}>
-                {[["Days 1–5","Pain-to-Hook"],["Days 6–10","Narrow Content"],["Days 11–15","Reel Script"],["Days 16–20","Social Proof"],["Days 21–25","Saveable Carousel"],["Days 26–30","CTA Generator"]].map(([d,fw])=>(
-                  <div key={d} style={{display:"flex",gap:6,alignItems:"center"}}>
-                    <span style={{fontSize:10,color:C.rose,fontWeight:700,minWidth:60}}>{d}</span>
-                    <span style={{fontSize:11,color:C.charcoal}}>{fw}</span>
-                  </div>
-                ))}
+          <Sec title="30-Day Content Calendar" sub="Pick your focus → we handle the strategy. 30 days of hooks, captions & scripts — copy-paste ready.">
+            {/* Mode selector */}
+            <div style={{marginBottom:"1.25rem"}}>
+              <div style={{fontSize:11,color:C.roseDark,fontWeight:700,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:10}}>What's your focus this month?</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div onClick={()=>set("calMode","audience")} style={{padding:"16px 12px",borderRadius:14,cursor:"pointer",textAlign:"center",border:`1.5px solid ${f.calMode==="audience"?C.rose:C.blush}`,background:f.calMode==="audience"?C.cream:C.white,transition:"all 0.15s"}}>
+                  <div style={{fontSize:26,marginBottom:6}}>🌱</div>
+                  <div style={{fontWeight:700,fontSize:13,color:C.charcoal,marginBottom:4}}>Build my audience</div>
+                  <div style={{fontSize:11,color:"#aaa",lineHeight:1.5}}>Just starting out — all 30 days are growth & awareness. No product needed.</div>
+                </div>
+                <div onClick={()=>set("calMode","sell")} style={{padding:"16px 12px",borderRadius:14,cursor:"pointer",textAlign:"center",border:`1.5px solid ${f.calMode==="sell"?C.rose:C.blush}`,background:f.calMode==="sell"?C.cream:C.white,transition:"all 0.15s"}}>
+                  <div style={{fontSize:26,marginBottom:6}}>💰</div>
+                  <div style={{fontWeight:700,fontSize:13,color:C.charcoal,marginBottom:4}}>Grow & sell</div>
+                  <div style={{fontSize:11,color:"#aaa",lineHeight:1.5}}>You have something to sell — strategic mix of growth, selling, trust & inspiration.</div>
+                </div>
               </div>
             </div>
+            {f.calMode&&(
+              <div style={{background:C.cream,border:`1px solid ${C.blush}`,borderRadius:10,padding:"10px 14px",marginBottom:"1rem",fontSize:11,color:C.charcoal,lineHeight:1.7}}>
+                {f.calMode==="audience"
+                  ?<><strong style={{color:C.roseDark}}>Your 30 days:</strong> Pain-to-Hook (days 1–10) → Narrow Content (days 11–20) → Reel Script (days 21–30) — all growth focused, CTA baked into every post.</>
+                  :<><strong style={{color:C.roseDark}}>Your 30 days:</strong> Growth content (days 1–13) → Selling content (days 14–23) → Trust building (days 24–28) → Inspire (days 29–30) — all 5 angles rotated in.</>
+                }
+              </div>
+            )}
             {(!f.niche&&!f.audience)&&(
               <div style={{background:"#fff8f7",border:`1px solid ${C.blush}`,borderRadius:10,padding:"10px 14px",fontSize:12,color:C.roseDark,marginBottom:"1rem"}}>
                 ⚠️ Fill in your <strong>niche, audience & tone</strong> in the context card above before generating.
               </div>
             )}
-            <F label="Personal themes or stories to weave in" hint="Real moments make content convert — the more specific the better"><textarea style={ta} value={f.calThemes||""} onChange={e=>set("calThemes",e.target.value)} placeholder="e.g. my divorce story, paying off $8k on a nurse's salary, night shift struggles, the day I almost quit, my first digital product sale..."/></F>
+            <F label="Personal themes or stories to weave in" hint="Real moments make content convert — the more specific the better"><textarea style={ta} value={f.calThemes||""} onChange={e=>set("calThemes",e.target.value)} placeholder="e.g. my divorce story, paying off $8k on a nurse's salary, night shift struggles, my first digital product sale..."/></F>
           </Sec>
-          <button style={btn("fill")} onClick={generateCalendar}>Generate my 30-day calendar →</button>
+          <button style={{...btn("fill"),opacity:f.calMode?1:0.45,cursor:f.calMode?"pointer":"not-allowed"}} onClick={()=>f.calMode&&generateCalendar()}>Generate my 30-day calendar →</button>
           {calLoading&&<div style={{margin:"1rem 0"}}><Spinner/><p style={{fontSize:12,color:"#aaa",fontStyle:"italic",marginTop:4}}>Building your 30-day content plan — this takes 20–30 seconds...</p></div>}
           {calDays.length>0&&(
             <div style={{marginTop:"1.5rem"}}>
@@ -1228,9 +1296,10 @@ Output all 30 days in order. No extra text. No commentary. Just the 30 days.`;
                 <div key={d.day} style={{border:`1px solid ${C.blush}`,borderRadius:14,marginBottom:8,overflow:"hidden",background:C.white}}>
                   {/* Day header */}
                   <div style={{background:C.cream,padding:"8px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid ${C.blush}`,flexWrap:"wrap",gap:6}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                       <div style={{fontWeight:700,fontSize:12,color:C.roseDark,letterSpacing:"0.1em"}}>DAY {d.day}</div>
-                      {d.framework&&<div style={{fontSize:10,color:C.white,background:C.rose,borderRadius:20,padding:"2px 10px",letterSpacing:"0.06em",fontWeight:600}}>{d.framework}</div>}
+                      {d.framework&&<div style={{fontSize:10,color:C.white,background:C.rose,borderRadius:20,padding:"2px 10px",letterSpacing:"0.05em",fontWeight:600}}>{d.framework}</div>}
+                      {d.goal&&<div style={{fontSize:10,color:C.roseDark,background:C.blush,borderRadius:20,padding:"2px 10px",letterSpacing:"0.05em",fontWeight:600}}>{d.goal}</div>}
                     </div>
                     <button style={btn("out",true)} onClick={()=>navigator.clipboard?.writeText(`HOOK: ${d.hook}\n\nCAPTION:\n${d.caption}\n\nSCRIPT:\n${d.script}`)}>Copy day</button>
                   </div>
