@@ -265,6 +265,26 @@ function HomeTab({user,data,setNav,saved}){
     {id:"library",label:`Library${saved.length>0?` (${saved.length})`:""}`,icon:"📂",badge:null},
   ];
 
+  const [startPath,setStartPath]=useState(()=>{try{return localStorage.getItem(`sp_${user.email}`)||null;}catch{return null;}});
+  const [startOpen,setStartOpen]=useState(()=>{try{const v=localStorage.getItem(`so_${user.email}`);return v!==null?v==="1":done===0;}catch{return done===0;}});
+  const toggleOpen=(v)=>{setStartOpen(v);try{localStorage.setItem(`so_${user.email}`,v?"1":"0");}catch{}};
+  const choosePath=(p)=>{setStartPath(p);try{if(p)localStorage.setItem(`sp_${user.email}`,p);else localStorage.removeItem(`sp_${user.email}`);}catch{}};
+  const noIdeaSteps=[
+    {name:"Reclaim Your Identity",desc:"Clarity on who you are now",nav:"reclaim",isDone:!!data.reclaimResult},
+    {name:"Brand Kit",desc:"Your niche, voice & visual identity",nav:"install",isDone:!!data.installResult},
+    {name:"Idea Generator",desc:"Explore content angles & offers",nav:"install",isDone:!!data.installResult},
+    {name:"Product Builder",desc:"Design your signature offer",nav:"install",isDone:!!data.installResult},
+    {name:"Content Studio",desc:"Create single posts & content",nav:"sustain",isDone:!!data.sustainResult},
+    {name:"30-Day Calendar",desc:"Plan a full month of content",nav:"sustain",isDone:!!data.sustainResult},
+  ];
+  const haveIdeaSteps=[
+    {name:"Product Builder",desc:"Define & price your offer",nav:"install",isDone:!!data.installResult},
+    {name:"Brand Kit",desc:"Your niche, voice & visual identity",nav:"install",isDone:!!data.installResult},
+    {name:"Content Studio",desc:"Create single posts & content",nav:"sustain",isDone:!!data.sustainResult},
+    {name:"30-Day Calendar",desc:"Plan a full month of content",nav:"sustain",isDone:!!data.sustainResult},
+    {name:"Reclaim Your Identity",desc:"Optional deep-dive on identity",nav:"reclaim",isDone:!!data.reclaimResult,optional:true},
+  ];
+
   return(
     <div>
       {/* ── HERO ── */}
@@ -280,6 +300,57 @@ function HomeTab({user,data,setNav,saved}){
           <div style={{background:`linear-gradient(90deg,${C.blush},${C.rose})`,height:"100%",width:`${pct||4}%`,borderRadius:10,transition:"width 0.8s ease"}}/>
         </div>
         <p style={{fontSize:11,color:C.accent2,margin:0,letterSpacing:"0.05em"}}>{done} of 4 phases activated — {pct}% complete</p>
+      </div>
+
+      {/* ── START HERE ── */}
+      <div style={{...card,marginBottom:"1.25rem",border:`1px solid ${C.blush}`,padding:"1.25rem"}}>
+        <div onClick={()=>toggleOpen(!startOpen)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}>
+          <div>
+            <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,textTransform:"uppercase",marginBottom:2}}>Start Here</div>
+            <div style={{fontSize:13,color:C.charcoal,lineHeight:1.4}}>{startPath?(startPath==="no-idea"?"🌱 No idea yet — your path":"💡 Have an idea — your path"):"Not sure where to begin? Pick your path."}</div>
+          </div>
+          <div style={{fontSize:20,color:C.rose,transition:"transform 0.2s",transform:startOpen?"rotate(180deg)":"rotate(0deg)",marginLeft:12,flexShrink:0}}>▾</div>
+        </div>
+        {startOpen&&(
+          <div style={{marginTop:16}}>
+            {!startPath&&(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div onClick={()=>choosePath("no-idea")} style={{background:C.cream,borderRadius:16,padding:"1.25rem 1rem",cursor:"pointer",border:`1.5px solid ${C.blush}`,textAlign:"center",transition:"opacity 0.15s"}}>
+                  <div style={{fontSize:30,marginBottom:8}}>🌱</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:14,color:C.charcoal,fontWeight:600,marginBottom:6}}>No idea yet</div>
+                  <div style={{fontSize:11,color:"#999",lineHeight:1.5}}>Discover your niche, offer & content from scratch</div>
+                </div>
+                <div onClick={()=>choosePath("have-idea")} style={{background:C.cream,borderRadius:16,padding:"1.25rem 1rem",cursor:"pointer",border:`1.5px solid ${C.blush}`,textAlign:"center",transition:"opacity 0.15s"}}>
+                  <div style={{fontSize:30,marginBottom:8}}>💡</div>
+                  <div style={{fontFamily:"Georgia,serif",fontSize:14,color:C.charcoal,fontWeight:600,marginBottom:6}}>Have an idea</div>
+                  <div style={{fontSize:11,color:"#999",lineHeight:1.5}}>You know what you want — let's build it out</div>
+                </div>
+              </div>
+            )}
+            {startPath&&(
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <div style={{fontSize:12,color:"#999"}}>Tap any step to jump there</div>
+                  <button onClick={e=>{e.stopPropagation();choosePath(null);}} style={{background:"transparent",border:`1px solid ${C.blush}`,borderRadius:20,padding:"4px 12px",fontSize:11,color:C.rose,cursor:"pointer",fontFamily:"Georgia,serif"}}>Switch path</button>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {(startPath==="no-idea"?noIdeaSteps:haveIdeaSteps).map((step,i)=>(
+                    <div key={i} onClick={()=>setNav(step.nav)} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 14px",borderRadius:12,background:step.isDone?C.cream:C.pale,border:`1px solid ${step.isDone?C.blush:"rgba(196,151,148,0.15)"}`,cursor:"pointer"}}>
+                      <div style={{width:24,height:24,borderRadius:"50%",flexShrink:0,background:step.isDone?C.rose:C.accent1,color:step.isDone?C.white:C.roseDark,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700}}>{step.isDone?"✓":i+1}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:600,color:C.charcoal}}>{step.name}</div>
+                        <div style={{fontSize:10,color:"#aaa",marginTop:1}}>{step.desc}</div>
+                      </div>
+                      {step.optional&&<div style={{fontSize:10,color:C.rose,borderRadius:10,padding:"2px 8px",background:C.blush,flexShrink:0}}>optional</div>}
+                      <div style={{fontSize:13,color:C.rose,flexShrink:0}}>→</div>
+                    </div>
+                  ))}
+                </div>
+                <p onClick={()=>toggleOpen(false)} style={{fontSize:11,color:"#ccc",textAlign:"center",cursor:"pointer",margin:"14px 0 0"}}>Got it, hide this guide</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── PHASE CARDS ── */}
