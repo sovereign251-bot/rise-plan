@@ -176,10 +176,9 @@ function ToolGrid({tools,active,onSelect}){
   );
 }
 
-// ── LOGIN ─────────────────────────────────────────────────────────────────────
-function LoginScreen({onLogin}){
-  const isMobile=useIsMobile();
-  const[mode,setMode]=useState("login");
+// ── AUTH FORM ─────────────────────────────────────────────────────────────────
+function AuthForm({onLogin,defaultMode="signup"}){
+  const[mode,setMode]=useState(defaultMode);
   const[email,setEmail]=useState("");const[pw,setPw]=useState("");const[name,setName]=useState("");
   const[err,setErr]=useState("");const[loading,setLoading]=useState(false);
 
@@ -207,38 +206,264 @@ function LoginScreen({onLogin}){
   }
 
   return(
-    <div style={{minHeight:"100vh",background:`linear-gradient(135deg,${C.cream} 0%,${C.blush} 50%,${C.accent1} 100%)`,display:"flex",alignItems:"center",justifyContent:"center",padding:isMobile?"1rem":"2rem"}}>
-      <div style={{width:"100%",maxWidth:420}}>
-        <div style={{textAlign:"center",marginBottom:"2rem"}}>
-          <div style={{fontSize:13,letterSpacing:"0.3em",color:C.rose,marginBottom:6,fontFamily:"Georgia,serif",fontStyle:"italic"}}>my signature</div>
-          <div style={{fontSize:isMobile?48:64,fontFamily:"Georgia,serif",color:C.rose,letterSpacing:"0.18em",lineHeight:1}}>RISE</div>
-          <div style={{fontSize:13,letterSpacing:"0.25em",color:C.charcoal,marginTop:6,fontFamily:"Georgia,serif"}}>PLAN</div>
-          <div style={{display:"flex",justifyContent:"center",gap:20,marginTop:14}}>
-            {["Reclaim","Install","Sustain","Expand"].map(p=>(
-              <div key={p} style={{fontSize:11,color:C.roseDark,letterSpacing:"0.06em",textAlign:"center"}}>
-                <div style={{width:28,height:28,borderRadius:"50%",background:C.blush,margin:"0 auto 4px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:C.rose}}>{p[0]}</div>
-                {p}
+    <div style={{...card,boxShadow:"0 8px 40px rgba(196,151,148,0.22)",maxWidth:440,margin:"0 auto",background:C.white}}>
+      <div style={{textAlign:"center",marginBottom:"1.5rem"}}>
+        <div style={{fontStyle:"italic",fontSize:13,color:C.rose,letterSpacing:"0.1em",marginBottom:4}}>purely empowered</div>
+        <div style={{fontSize:44,fontFamily:"Georgia,serif",color:C.rose,letterSpacing:"0.18em",lineHeight:1}}>RISE</div>
+        <div style={{fontSize:11,letterSpacing:"0.28em",color:C.charcoal,marginTop:4}}>PLAN</div>
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
+        {[["signup","Join — founding rate →"],["login","Already a member"]].map(([m,label])=>(
+          <button key={m} type="button" style={m===mode?btn("fill"):btn("out")} onClick={()=>{setMode(m);setErr("");}}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <form onSubmit={submit} autoComplete="on">
+        {mode==="signup"&&<F label="Your name"><input style={inp} name="name" autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="First name"/></F>}
+        <F label="Email"><input style={inp} type="email" name="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com"/></F>
+        <F label="Password"><input style={inp} type="password" name="password" autoComplete={mode==="signup"?"new-password":"current-password"} value={pw} onChange={e=>setPw(e.target.value)} placeholder={mode==="signup"?"Choose a password":"Your password"}/></F>
+        {err&&<p style={{color:"#c0392b",fontSize:13,margin:"0 0 10px"}}>{err}</p>}
+        <button type="submit" disabled={loading} style={{...btn("fill"),width:"100%",marginTop:8,padding:"13px",opacity:loading?0.7:1,fontSize:15}}>
+          {loading?"Please wait...":mode==="login"?"Enter my dashboard →":"Claim my founding rate →"}
+        </button>
+      </form>
+      {mode==="signup"&&<p style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:12,marginBottom:0}}>$27/month · Cancel anytime · No contracts</p>}
+    </div>
+  );
+}
+
+// ── LANDING PAGE ──────────────────────────────────────────────────────────────
+function LandingPage({onLogin}){
+  const isMobile=useIsMobile();
+  const[openFaq,setOpenFaq]=useState(null);
+  const scrollTo=()=>document.getElementById("pe-join")?.scrollIntoView({behavior:"smooth"});
+
+  const forYou=[
+    {icon:"💔",text:"You feel like you lost yourself somewhere in the marriage — and you're not sure who you are anymore"},
+    {icon:"💸",text:"You want financial independence. Something that's actually yours — not tied to a paycheck or a partner"},
+    {icon:"📱",text:"You see other women building businesses online and think 'I could do that' — but you don't know where to start"},
+    {icon:"⏰",text:"You're balancing work, kids, and a fresh start — and you need a plan that fits your real life"},
+  ];
+
+  const phases=[
+    {letter:"R",name:"Reclaim",grad:"linear-gradient(135deg,#6b5a59,#a07370)",desc:"Reconnect with who you actually are — separate from the marriage. This is where it all starts."},
+    {letter:"I",name:"Install",grad:"linear-gradient(135deg,#494747,#7a6560)",desc:"Map your finances, build your offer, and install the real foundation of your business."},
+    {letter:"S",name:"Sustain",grad:"linear-gradient(135deg,#7a6560,#C49794)",desc:"Create content that sounds like you and builds an audience — without being online 24/7."},
+    {letter:"E",name:"Expand",grad:"linear-gradient(135deg,#5a4f4e,#9a7a77)",desc:"With stability beneath you, build the life that's entirely, unapologetically yours."},
+  ];
+
+  const tools=[
+    {icon:"🧠",name:"Identity Clarity",desc:"AI-guided questions to separate who you were from who you're becoming"},
+    {icon:"💰",name:"Financial Blueprint",desc:"Map your income gap and build a pricing strategy for your offer"},
+    {icon:"✍️",name:"Content Studio",desc:"Generate hooks, captions, and reel scripts in your voice — single posts or a full month"},
+    {icon:"📅",name:"30-Day Calendar",desc:"A complete content plan built around your niche, audience, and goals"},
+    {icon:"✨",name:"Brand Kit",desc:"Your voice, niche, and visual identity — all defined in one session"},
+    {icon:"📂",name:"Your Library",desc:"Every piece of content you create is auto-saved and ready to copy-paste"},
+  ];
+
+  const steps=[
+    {n:"01",title:"Tell the AI about you",desc:"Answer a few guided questions. The platform learns your story, your skills, and where you're starting."},
+    {n:"02",title:"Get your personalized plan",desc:"The RISE method maps to your exact situation — clarity on your offer, your content, and your next move."},
+    {n:"03",title:"Build, post, and grow",desc:"Use the tools daily or weekly. Your business grows alongside your life — not instead of it."},
+  ];
+
+  const foundingFeatures=["Full access to all 4 RISE phases","AI Content Studio + 30-Day Calendar","Brand Kit & identity tools","Library that auto-saves everything you create","Founding member rate locked in forever"];
+  const stdFeatures=["Full access to all 4 RISE phases","AI Content Studio + 30-Day Calendar","Brand Kit & identity tools","Library that auto-saves everything you create"];
+
+  const faqs=[
+    {q:"What if I have no idea what kind of business to build?",a:"That's exactly what this is for. The Reclaim and Install phases walk you through discovering your offer from your own story, skills, and experience — you don't need to come in with an idea."},
+    {q:"Will I actually have time for this with everything I'm managing?",a:"The tools are built for 20–30 minute sessions. You don't need to be online constantly — you build in the pockets of time you actually have."},
+    {q:"Is this only for nurses?",a:"No — it's for any woman rebuilding after divorce who wants financial independence. The platform is built around your real life, wherever you're starting from."},
+    {q:"What if I join and it's not for me?",a:"Cancel anytime. No contracts, no questions, no hard feelings. Your founding rate is locked in for as long as you stay."},
+    {q:"What happens after the founding 50 spots are gone?",a:"The price moves to $67/month. Your founding rate of $27/month stays locked in forever — as long as you remain a member."},
+  ];
+
+  return(
+    <div style={{background:C.pale,fontFamily:"Georgia,serif",color:C.charcoal}}>
+
+      {/* NAV */}
+      <div style={{position:"sticky",top:0,zIndex:100,background:"rgba(245,240,235,0.94)",backdropFilter:"blur(14px)",borderBottom:`1px solid ${C.blush}`}}>
+        <div style={{maxWidth:920,margin:"0 auto",padding:"0 1.5rem",display:"flex",justifyContent:"space-between",alignItems:"center",height:54}}>
+          <div>
+            <span style={{fontStyle:"italic",color:C.rose,fontSize:14,letterSpacing:"0.06em"}}>purely empowered</span>
+            <span style={{color:C.accent2,fontSize:11,marginLeft:8,letterSpacing:"0.08em"}}>by Paulina Patrick</span>
+          </div>
+          <button onClick={scrollTo} style={{...btn("fill",true),fontSize:12}}>Get started →</button>
+        </div>
+      </div>
+
+      {/* HERO */}
+      <div style={{background:`linear-gradient(160deg,${C.charcoal} 0%,#5a4542 60%,#7a6058 100%)`,padding:isMobile?"4.5rem 1.5rem 5.5rem":"6.5rem 2rem 8rem",textAlign:"center",position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:"8%",left:"4%",width:220,height:220,borderRadius:"50%",background:"rgba(242,207,204,0.05)"}}/>
+        <div style={{position:"absolute",bottom:"-5%",right:"3%",width:320,height:320,borderRadius:"50%",background:"rgba(196,151,148,0.06)"}}/>
+        <div style={{position:"relative",maxWidth:700,margin:"0 auto"}}>
+          <p style={{fontStyle:"italic",color:C.rose,fontSize:15,letterSpacing:"0.12em",marginBottom:20}}>purely empowered</p>
+          <h1 style={{fontSize:isMobile?34:54,color:C.white,fontWeight:400,lineHeight:1.18,margin:"0 0 1.25rem",letterSpacing:"-0.01em"}}>
+            The divorce was chapter one.<br/>
+            <span style={{color:C.blush}}>This is chapter two.</span>
+          </h1>
+          <p style={{fontSize:isMobile?15:17,color:C.accent2,lineHeight:1.8,maxWidth:520,margin:"0 auto 2.25rem"}}>
+            An AI-powered coaching platform built for women rebuilding after divorce — find your offer, build your brand, and create content that grows your income.
+          </p>
+          <div style={{display:"inline-flex",flexDirection:"column",alignItems:"center",gap:14}}>
+            <button onClick={scrollTo} style={{...btn("fill"),fontSize:16,padding:"15px 38px",background:`linear-gradient(135deg,${C.rose},${C.roseDark})`,boxShadow:`0 10px 30px rgba(196,151,148,0.38)`}}>
+              Start building my next chapter →
+            </button>
+            <div style={{background:"rgba(201,168,76,0.14)",border:`1px solid rgba(201,168,76,0.4)`,borderRadius:30,padding:"7px 20px",display:"inline-flex",alignItems:"center",gap:8}}>
+              <div style={{width:7,height:7,borderRadius:"50%",background:C.gold,flexShrink:0}}/>
+              <span style={{fontSize:12,color:C.gold,letterSpacing:"0.07em"}}>Founding rate: $27/month · First 50 members only</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FOR YOU IF */}
+      <div style={{maxWidth:880,margin:"0 auto",padding:isMobile?"3.5rem 1.25rem":"5rem 2rem"}}>
+        <p style={{fontSize:10,color:C.roseDark,letterSpacing:"0.2em",fontWeight:700,textTransform:"uppercase",marginBottom:10,textAlign:"center"}}>this is for you</p>
+        <h2 style={{fontSize:isMobile?24:32,textAlign:"center",fontWeight:400,margin:"0 0 2.5rem",lineHeight:1.35}}>If any of this sounds familiar...</h2>
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:14}}>
+          {forYou.map((item,i)=>(
+            <div key={i} style={{background:C.white,borderRadius:18,padding:"1.5rem",display:"flex",gap:14,alignItems:"flex-start",boxShadow:"0 2px 16px rgba(196,151,148,0.08)"}}>
+              <div style={{fontSize:26,flexShrink:0,marginTop:2}}>{item.icon}</div>
+              <p style={{fontSize:14,lineHeight:1.75,margin:0,color:C.charcoal}}>{item.text}</p>
+            </div>
+          ))}
+        </div>
+        <p style={{textAlign:"center",fontSize:16,fontStyle:"italic",color:C.rose,marginTop:"2.5rem",marginBottom:0}}>Then you are exactly in the right place.</p>
+      </div>
+
+      {/* RISE METHOD */}
+      <div style={{background:C.white,padding:isMobile?"3.5rem 1.25rem":"5rem 2rem"}}>
+        <div style={{maxWidth:880,margin:"0 auto"}}>
+          <p style={{fontSize:10,color:C.roseDark,letterSpacing:"0.2em",fontWeight:700,textTransform:"uppercase",marginBottom:10,textAlign:"center"}}>the method</p>
+          <h2 style={{fontSize:isMobile?24:32,textAlign:"center",fontWeight:400,margin:"0 0 6px",lineHeight:1.35}}>The RISE Method</h2>
+          <p style={{textAlign:"center",color:"#aaa",fontSize:14,marginBottom:"2.5rem",lineHeight:1.6}}>Four phases. One clear path. Built around your real life.</p>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"1fr 1fr 1fr 1fr",gap:14}}>
+            {phases.map(p=>(
+              <div key={p.letter} style={{background:p.grad,borderRadius:20,padding:"1.5rem 1.25rem",color:C.white,minHeight:190,display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
+                <div style={{width:32,height:32,borderRadius:"50%",background:"rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,marginBottom:10}}>{p.letter}</div>
+                <div>
+                  <div style={{fontWeight:600,fontSize:15,marginBottom:6}}>{p.name}</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.72)",lineHeight:1.65}}>{p.desc}</div>
+                </div>
               </div>
             ))}
           </div>
         </div>
-        <div style={{...card,boxShadow:"0 8px 32px rgba(196,151,148,0.15)"}}>
-          <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
-            {["login","signup"].map(m=><button key={m} type="button" style={m===mode?btn("fill"):btn("out")} onClick={()=>{setMode(m);setErr("");}}>
-              {m==="login"?"Log in":"Sign up"}
-            </button>)}
-          </div>
-          <form onSubmit={submit} autoComplete="on">
-            {mode==="signup"&&<F label="Your name"><input style={inp} name="name" autoComplete="name" value={name} onChange={e=>setName(e.target.value)} placeholder="First name"/></F>}
-            <F label="Email"><input style={inp} type="email" name="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com"/></F>
-            <F label="Password"><input style={inp} type="password" name="password" autoComplete={mode==="signup"?"new-password":"current-password"} value={pw} onChange={e=>setPw(e.target.value)} placeholder="Password"/></F>
-            {err&&<p style={{color:"#c0392b",fontSize:13,margin:"0 0 10px"}}>{err}</p>}
-            <button type="submit" disabled={loading} style={{...btn("fill"),width:"100%",marginTop:8,padding:"13px",opacity:loading?0.7:1}}>
-              {loading?"Please wait...":mode==="login"?"Enter my dashboard →":"Create my account →"}
-            </button>
-          </form>
+      </div>
+
+      {/* WHAT'S INSIDE */}
+      <div style={{maxWidth:880,margin:"0 auto",padding:isMobile?"3.5rem 1.25rem":"5rem 2rem"}}>
+        <p style={{fontSize:10,color:C.roseDark,letterSpacing:"0.2em",fontWeight:700,textTransform:"uppercase",marginBottom:10,textAlign:"center"}}>what you get</p>
+        <h2 style={{fontSize:isMobile?24:32,textAlign:"center",fontWeight:400,margin:"0 0 2.5rem",lineHeight:1.35}}>Everything you need — in one place</h2>
+        <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr 1fr":"1fr 1fr 1fr",gap:14}}>
+          {tools.map((t,i)=>(
+            <div key={i} style={{background:C.white,borderRadius:18,padding:"1.5rem",boxShadow:"0 2px 16px rgba(196,151,148,0.08)"}}>
+              <div style={{fontSize:28,marginBottom:10}}>{t.icon}</div>
+              <div style={{fontWeight:600,fontSize:14,marginBottom:6,color:C.charcoal}}>{t.name}</div>
+              <div style={{fontSize:12,color:"#aaa",lineHeight:1.65}}>{t.desc}</div>
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* HOW IT WORKS */}
+      <div style={{background:`linear-gradient(135deg,${C.cream},${C.blush})`,padding:isMobile?"3.5rem 1.25rem":"5rem 2rem"}}>
+        <div style={{maxWidth:880,margin:"0 auto"}}>
+          <p style={{fontSize:10,color:C.roseDark,letterSpacing:"0.2em",fontWeight:700,textTransform:"uppercase",marginBottom:10,textAlign:"center"}}>simple steps</p>
+          <h2 style={{fontSize:isMobile?24:32,textAlign:"center",fontWeight:400,margin:"0 0 2.5rem",lineHeight:1.35}}>From "I don't know where to start" to building</h2>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr 1fr",gap:18}}>
+            {steps.map((s,i)=>(
+              <div key={i} style={{background:C.white,borderRadius:20,padding:"2rem 1.5rem",textAlign:"center",boxShadow:"0 4px 20px rgba(196,151,148,0.10)"}}>
+                <div style={{fontSize:11,color:C.rose,letterSpacing:"0.22em",fontWeight:700,marginBottom:10}}>{s.n}</div>
+                <div style={{fontWeight:600,fontSize:15,color:C.charcoal,marginBottom:10}}>{s.title}</div>
+                <div style={{fontSize:12,color:"#aaa",lineHeight:1.75}}>{s.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* FOUNDER'S NOTE */}
+      <div style={{maxWidth:660,margin:"0 auto",padding:isMobile?"3.5rem 1.25rem":"5rem 2rem",textAlign:"center"}}>
+        <p style={{fontSize:10,color:C.roseDark,letterSpacing:"0.2em",fontWeight:700,textTransform:"uppercase",marginBottom:10}}>from paulina</p>
+        <h2 style={{fontSize:isMobile?22:28,fontWeight:400,margin:"0 0 1.5rem",lineHeight:1.4}}>I built this because I needed it</h2>
+        <div style={{...card,textAlign:"left",fontSize:14,lineHeight:1.95,color:"#777",border:`1px solid ${C.blush}`}}>
+          <p style={{marginTop:0}}>"I know what it's like to sit in the quiet after everything changes — and wonder what's next. To want to build something, but not know where to begin. To feel like you're starting over, but without a map."</p>
+          <p>"RISE Plan is the map I wish I'd had. Every tool inside it was built with women like us in mind — the ones balancing everything, rebuilding everything, and quietly becoming someone who surprises herself."</p>
+          <p style={{marginBottom:0,fontStyle:"italic",color:C.rose}}>— Paulina Patrick, founder of Purely Empowered</p>
+        </div>
+      </div>
+
+      {/* PRICING */}
+      <div style={{background:C.white,padding:isMobile?"3.5rem 1.25rem":"5rem 2rem"}}>
+        <div style={{maxWidth:740,margin:"0 auto"}}>
+          <p style={{fontSize:10,color:C.roseDark,letterSpacing:"0.2em",fontWeight:700,textTransform:"uppercase",marginBottom:10,textAlign:"center"}}>pricing</p>
+          <h2 style={{fontSize:isMobile?24:32,textAlign:"center",fontWeight:400,margin:"0 0 6px"}}>One membership. Every tool.</h2>
+          <p style={{textAlign:"center",color:"#aaa",fontSize:14,marginBottom:"2.5rem"}}>No contracts. Cancel anytime.</p>
+          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16,alignItems:"start"}}>
+            <div style={{borderRadius:24,border:`2px solid ${C.rose}`,padding:"2rem",position:"relative",background:C.cream}}>
+              <div style={{position:"absolute",top:-14,left:"50%",transform:"translateX(-50%)",background:C.rose,color:C.white,fontSize:11,fontWeight:700,letterSpacing:"0.08em",padding:"4px 18px",borderRadius:20,whiteSpace:"nowrap"}}>🌱 FOUNDING MEMBER</div>
+              <div style={{marginTop:"1rem"}}>
+                <div style={{display:"flex",alignItems:"flex-end",gap:4,marginBottom:4}}>
+                  <span style={{fontSize:44,fontWeight:400,color:C.charcoal,lineHeight:1}}>$27</span>
+                  <span style={{fontSize:15,color:"#aaa",paddingBottom:4}}>/month</span>
+                </div>
+                <div style={{fontSize:11,color:C.rose,letterSpacing:"0.06em",marginBottom:"1.5rem"}}>First 50 members · locked in forever</div>
+              </div>
+              {foundingFeatures.map((f,i)=>(
+                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
+                  <div style={{width:18,height:18,borderRadius:"50%",background:C.blush,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.roseDark,flexShrink:0,marginTop:2}}>✓</div>
+                  <span style={{fontSize:13,lineHeight:1.5,color:C.charcoal}}>{f}</span>
+                </div>
+              ))}
+              <button onClick={scrollTo} style={{...btn("fill"),width:"100%",marginTop:"1.5rem",padding:"13px",fontSize:15}}>Claim founding rate →</button>
+            </div>
+            <div style={{borderRadius:24,border:`1.5px solid ${C.blush}`,padding:"2rem",background:C.pale}}>
+              <div style={{marginTop:"1rem"}}>
+                <div style={{display:"flex",alignItems:"flex-end",gap:4,marginBottom:4}}>
+                  <span style={{fontSize:44,fontWeight:400,color:"#bbb",lineHeight:1}}>$67</span>
+                  <span style={{fontSize:15,color:"#ccc",paddingBottom:4}}>/month</span>
+                </div>
+                <div style={{fontSize:11,color:"#ccc",marginBottom:"1.5rem"}}>Standard rate · after founding spots fill</div>
+              </div>
+              {stdFeatures.map((f,i)=>(
+                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
+                  <div style={{width:18,height:18,borderRadius:"50%",background:C.accent1,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#bbb",flexShrink:0,marginTop:2}}>✓</div>
+                  <span style={{fontSize:13,color:"#bbb",lineHeight:1.5}}>{f}</span>
+                </div>
+              ))}
+              <button onClick={scrollTo} style={{...btn("out"),width:"100%",marginTop:"1.5rem",padding:"13px",fontSize:14,opacity:0.6}}>Join at standard rate</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div style={{maxWidth:680,margin:"0 auto",padding:isMobile?"3.5rem 1.25rem":"5rem 2rem"}}>
+        <p style={{fontSize:10,color:C.roseDark,letterSpacing:"0.2em",fontWeight:700,textTransform:"uppercase",marginBottom:10,textAlign:"center"}}>questions answered</p>
+        <h2 style={{fontSize:isMobile?24:30,textAlign:"center",fontWeight:400,margin:"0 0 2rem"}}>Before you decide</h2>
+        {faqs.map((faq,i)=>(
+          <div key={i} style={{borderBottom:`1px solid ${C.blush}`}}>
+            <div onClick={()=>setOpenFaq(openFaq===i?null:i)} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"1.1rem 0",cursor:"pointer"}}>
+              <span style={{fontSize:14,fontWeight:600,color:C.charcoal,lineHeight:1.4,paddingRight:16}}>{faq.q}</span>
+              <div style={{fontSize:20,color:C.rose,flexShrink:0,transition:"transform 0.2s",transform:openFaq===i?"rotate(180deg)":"none"}}>▾</div>
+            </div>
+            {openFaq===i&&<p style={{fontSize:13,color:"#888",lineHeight:1.85,margin:"0 0 1.1rem",paddingRight:16}}>{faq.a}</p>}
+          </div>
+        ))}
+      </div>
+
+      {/* JOIN / AUTH */}
+      <div id="pe-join" style={{background:`linear-gradient(160deg,${C.charcoal} 0%,#5a4542 100%)`,padding:isMobile?"3.5rem 1.25rem 5rem":"5rem 2rem 7rem",textAlign:"center"}}>
+        <p style={{fontStyle:"italic",color:C.rose,fontSize:14,marginBottom:10,letterSpacing:"0.08em"}}>your next chapter starts now</p>
+        <h2 style={{fontSize:isMobile?26:36,color:C.white,fontWeight:400,margin:"0 0 8px",lineHeight:1.3}}>You've rebuilt yourself before.</h2>
+        <p style={{fontSize:16,color:C.accent2,marginBottom:"2.5rem",lineHeight:1.6}}>This time, you get to build something.</p>
+        <AuthForm onLogin={onLogin}/>
+        <p style={{fontSize:11,color:"rgba(255,255,255,0.25)",marginTop:"1.5rem",marginBottom:0}}>$27/month · Cancel anytime · No contracts</p>
+      </div>
+
     </div>
   );
 }
@@ -1762,7 +1987,7 @@ export default function App(){
   return(
     <MobCtx.Provider value={isMobile}>
       {!user
-        ?<LoginScreen onLogin={handleLogin}/>
+        ?<LandingPage onLogin={handleLogin}/>
         :isMobile
           ?<div style={{display:"flex",flexDirection:"column",minHeight:"100vh",background:C.pale,fontFamily:"Georgia,serif"}}>
             <MobileHeader user={user} onLogout={logout}/>
