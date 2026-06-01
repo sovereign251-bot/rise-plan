@@ -1873,6 +1873,55 @@ function LibraryTab({saved,onDelete,onExport}){
   );
 }
 
+// ── SETTINGS MODAL ───────────────────────────────────────────────────────────
+function SettingsModal({user,onClose,onLogout}){
+  const isMobile=useIsMobile();
+  const cancelEmail="hello@purelyempowered.com";
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(73,71,71,0.5)",display:"flex",alignItems:isMobile?"flex-end":"center",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.white,borderRadius:isMobile?"24px 24px 0 0":"24px",padding:"2rem",width:"100%",maxWidth:isMobile?"100%":430,boxShadow:"0 -8px 40px rgba(73,71,71,0.18)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"1.5rem"}}>
+          <div>
+            <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,textTransform:"uppercase",marginBottom:3}}>Account</div>
+            <div style={{fontSize:20,color:C.charcoal,fontFamily:"Georgia,serif"}}>Settings</div>
+          </div>
+          <button onClick={onClose} style={{background:"transparent",border:"none",fontSize:24,color:"#ccc",cursor:"pointer",lineHeight:1,padding:"0 4px"}}>×</button>
+        </div>
+
+        {/* Account info */}
+        <div style={{background:C.pale,borderRadius:14,padding:"1rem 1.25rem",marginBottom:"1rem"}}>
+          <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.12em",fontWeight:700,textTransform:"uppercase",marginBottom:10}}>Your account</div>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:7}}>
+            <span style={{fontSize:12,color:"#bbb"}}>Name</span>
+            <span style={{fontSize:13,color:C.charcoal,fontWeight:600}}>{user.name}</span>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between"}}>
+            <span style={{fontSize:12,color:"#bbb"}}>Email</span>
+            <span style={{fontSize:13,color:C.charcoal}}>{user.email}</span>
+          </div>
+        </div>
+
+        {/* Membership */}
+        <div style={{background:C.cream,borderRadius:14,padding:"1rem 1.25rem",marginBottom:"1rem",border:`1px solid ${C.blush}`}}>
+          <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.12em",fontWeight:700,textTransform:"uppercase",marginBottom:10}}>Membership</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <span style={{fontSize:13,color:C.charcoal}}>Purely Empowered · RISE Plan</span>
+            <span style={{fontSize:11,color:C.rose,background:C.blush,borderRadius:20,padding:"2px 10px",whiteSpace:"nowrap"}}>Active</span>
+          </div>
+          <a href={`mailto:${cancelEmail}?subject=Cancel my RISE Plan membership&body=Hi Paulina,%0D%0A%0D%0APlease cancel my membership for the account: ${user.email}.%0D%0A%0D%0AThank you.`}
+             style={{display:"block",textAlign:"center",padding:"11px",borderRadius:10,border:`1px solid rgba(196,151,148,0.4)`,color:C.roseDark,fontSize:13,textDecoration:"none",background:C.white,fontFamily:"Georgia,serif",cursor:"pointer"}}>
+            Request cancellation →
+          </a>
+          <p style={{fontSize:11,color:"#bbb",textAlign:"center",margin:"8px 0 0",lineHeight:1.6}}>We'll cancel within 24 hours and you won't be charged again.</p>
+        </div>
+
+        {/* Logout */}
+        <button onClick={onLogout} style={{...btn("out"),width:"100%",padding:"12px",marginTop:4}}>Sign out of my account</button>
+      </div>
+    </div>
+  );
+}
+
 // ── APP ───────────────────────────────────────────────────────────────────────
 const NAV=[
   {id:"home",label:"Home",icon:"⌂"},
@@ -1885,18 +1934,16 @@ const NAV=[
   {id:"library",label:"Library",icon:"📂"},
 ];
 
-function MobileHeader({user,onLogout}){
+function MobileHeader({user,onSettings}){
   return(
     <div style={{background:C.charcoal,padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:`1px solid rgba(255,255,255,0.08)`,flexShrink:0}}>
       <div>
-        <div style={{fontSize:9,letterSpacing:"0.2em",color:C.accent2,fontStyle:"italic"}}>my signature</div>
+        <div style={{fontSize:9,letterSpacing:"0.2em",color:C.accent2,fontStyle:"italic"}}>purely empowered</div>
         <div style={{fontSize:16,color:C.rose,letterSpacing:"0.2em",lineHeight:1.2}}>RISE PLAN</div>
       </div>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
         <div style={{fontSize:12,color:C.accent2,maxWidth:100,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div>
-        <button onClick={onLogout} style={{background:"rgba(196,151,148,0.2)",border:`1px solid rgba(196,151,148,0.3)`,color:C.accent2,cursor:"pointer",fontSize:11,padding:"5px 12px",borderRadius:6,fontFamily:"Georgia,serif",letterSpacing:"0.04em"}}>
-          Sign out
-        </button>
+        <button onClick={onSettings} style={{background:"rgba(196,151,148,0.15)",border:`1px solid rgba(196,151,148,0.25)`,color:C.accent2,cursor:"pointer",fontSize:17,padding:"5px 9px",borderRadius:8,lineHeight:1}}>⚙</button>
       </div>
     </div>
   );
@@ -1957,7 +2004,8 @@ export default function App(){
     const d=localStorage.getItem(`rise_data_${u.email}`);if(d)setData(JSON.parse(d));
     const l=localStorage.getItem(`rise_lib_${u.email}`);if(l)setSaved(JSON.parse(l));
   }
-  function logout(){localStorage.removeItem("rise_current_user");setUser(null);setData({});setSaved([]);setNav("home");}
+  const[showSettings,setShowSettings]=useState(false);
+  function logout(){localStorage.removeItem("rise_current_user");setUser(null);setData({});setSaved([]);setNav("home");setShowSettings(false);}
   function saveItem(content,tag){setSaved(p=>[{content,tag,date:new Date().toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"})},...p]);}
   function deleteItem(idx){setSaved(p=>p.filter((_,i)=>i!==idx));}
   function exportLib(){
@@ -1990,7 +2038,7 @@ export default function App(){
         ?<LandingPage onLogin={handleLogin}/>
         :isMobile
           ?<div style={{display:"flex",flexDirection:"column",minHeight:"100vh",background:C.pale,fontFamily:"Georgia,serif"}}>
-            <MobileHeader user={user} onLogout={logout}/>
+            <MobileHeader user={user} onSettings={()=>setShowSettings(true)}/>
             {content}
             <MobileNav nav={nav} setNav={setNav} saved={saved}/>
           </div>
@@ -2021,9 +2069,9 @@ export default function App(){
                 {sideOpen
                   ?<div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                     <div style={{fontSize:12,color:C.accent2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:110}}>{user.name}</div>
-                    <button style={{background:"transparent",border:"none",color:C.accent2,cursor:"pointer",fontSize:12}} onClick={logout}>Out</button>
+                    <button onClick={()=>setShowSettings(true)} style={{background:"transparent",border:"none",color:C.accent2,cursor:"pointer",fontSize:18,lineHeight:1,padding:"2px 4px"}} title="Settings">⚙</button>
                   </div>
-                  :<button style={{background:"transparent",border:"none",color:C.accent2,cursor:"pointer",fontSize:16,width:"100%"}} onClick={logout}>↩</button>
+                  :<button onClick={()=>setShowSettings(true)} style={{background:"transparent",border:"none",color:C.accent2,cursor:"pointer",fontSize:18,width:"100%",lineHeight:1}} title="Settings">⚙</button>
                 }
               </div>
               <button onClick={()=>setSideOpen(o=>!o)} style={{position:"absolute",top:"50%",right:-12,transform:"translateY(-50%)",width:24,height:24,borderRadius:"50%",background:C.rose,border:"none",color:C.white,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
@@ -2033,6 +2081,7 @@ export default function App(){
             {content}
           </div>
       }
+      {showSettings&&user&&<SettingsModal user={user} onClose={()=>setShowSettings(false)} onLogout={logout}/>}
     </MobCtx.Provider>
   );
 }
