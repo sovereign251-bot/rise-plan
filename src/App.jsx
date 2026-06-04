@@ -213,7 +213,7 @@ function AuthForm({onLogin,defaultMode="signup"}){
         <div style={{fontSize:11,letterSpacing:"0.28em",color:C.charcoal,marginTop:4}}>PLAN</div>
       </div>
       <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
-        {[["signup","Join — founding rate →"],["login","Already a member"]].map(([m,label])=>(
+        {[["signup","Start my free trial →"],["login","Already a member"]].map(([m,label])=>(
           <button key={m} type="button" style={m===mode?btn("fill"):btn("out")} onClick={()=>{setMode(m);setErr("");}}>
             {label}
           </button>
@@ -225,10 +225,10 @@ function AuthForm({onLogin,defaultMode="signup"}){
         <F label="Password"><input style={inp} type="password" name="password" autoComplete={mode==="signup"?"new-password":"current-password"} value={pw} onChange={e=>setPw(e.target.value)} placeholder={mode==="signup"?"Choose a password":"Your password"}/></F>
         {err&&<p style={{color:"#c0392b",fontSize:13,margin:"0 0 10px"}}>{err}</p>}
         <button type="submit" disabled={loading} style={{...btn("fill"),width:"100%",marginTop:8,padding:"13px",opacity:loading?0.7:1,fontSize:15}}>
-          {loading?"Please wait...":mode==="login"?"Enter my dashboard →":"Claim my founding rate →"}
+          {loading?"Please wait...":mode==="login"?"Enter my dashboard →":"Start my free trial →"}
         </button>
       </form>
-      {mode==="signup"&&<p style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:12,marginBottom:0}}>$27/month · Cancel anytime · No contracts</p>}
+      {mode==="signup"&&<p style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:12,marginBottom:0}}>7 days free · then $67/month · Cancel anytime</p>}
     </div>
   );
 }
@@ -268,15 +268,14 @@ function LandingPage({onLogin}){
     {n:"03",title:"Build, post, and grow",desc:"Use the tools daily or weekly. Your business grows alongside your life — not instead of it."},
   ];
 
-  const foundingFeatures=["Full access to all 4 RISE phases","AI Content Studio + 30-Day Calendar","Brand Kit & identity tools","Library that auto-saves everything you create","Founding member rate locked in forever"];
-  const stdFeatures=["Full access to all 4 RISE phases","AI Content Studio + 30-Day Calendar","Brand Kit & identity tools","Library that auto-saves everything you create"];
+  const planFeatures=["Full access to all 4 RISE phases","AI Content Studio + 30-Day Calendar","Brand Kit & identity tools","Library that auto-saves everything you create","Cancel anytime — no contracts, no questions"];
 
   const faqs=[
     {q:"What if I have no idea what kind of business to build?",a:"That's exactly what this is for. The Reclaim and Install phases walk you through discovering your offer from your own story, skills, and experience — you don't need to come in with an idea."},
     {q:"Will I actually have time for this with everything I'm managing?",a:"The tools are built for 20–30 minute sessions. You don't need to be online constantly — you build in the pockets of time you actually have."},
     {q:"Is this only for nurses?",a:"No — it's for any woman rebuilding after divorce who wants financial independence. The platform is built around your real life, wherever you're starting from."},
-    {q:"What if I join and it's not for me?",a:"Cancel anytime. No contracts, no questions, no hard feelings. Your founding rate is locked in for as long as you stay."},
-    {q:"What happens after the founding 50 spots are gone?",a:"The price moves to $67/month. Your founding rate of $27/month stays locked in forever — as long as you remain a member."},
+    {q:"What if I join and it's not for me?",a:"Cancel anytime during or after your trial — no questions, no charges, no hard feelings. You're never locked in."},
+    {q:"What happens after the free trial?",a:"After 7 days, your membership continues at $67/month. You'll only be charged if you decide to stay. Cancel before the trial ends and you won't pay a thing."},
   ];
 
   return(
@@ -312,7 +311,7 @@ function LandingPage({onLogin}){
             </button>
             <div style={{background:"rgba(201,168,76,0.14)",border:`1px solid rgba(201,168,76,0.4)`,borderRadius:30,padding:"7px 20px",display:"inline-flex",alignItems:"center",gap:8}}>
               <div style={{width:7,height:7,borderRadius:"50%",background:C.gold,flexShrink:0}}/>
-              <span style={{fontSize:12,color:C.gold,letterSpacing:"0.07em"}}>Founding rate: $27/month · First 50 members only</span>
+              <span style={{fontSize:12,color:C.gold,letterSpacing:"0.07em"}}>7-day free trial · then $67/month · Cancel anytime</span>
             </div>
           </div>
         </div>
@@ -398,44 +397,27 @@ function LandingPage({onLogin}){
 
       {/* PRICING */}
       <div style={{background:C.white,padding:isMobile?"3.5rem 1.25rem":"5rem 2rem"}}>
-        <div style={{maxWidth:740,margin:"0 auto"}}>
+        <div style={{maxWidth:480,margin:"0 auto"}}>
           <p style={{fontSize:10,color:C.roseDark,letterSpacing:"0.2em",fontWeight:700,textTransform:"uppercase",marginBottom:10,textAlign:"center"}}>pricing</p>
           <h2 style={{fontSize:isMobile?24:32,textAlign:"center",fontWeight:400,margin:"0 0 6px"}}>One membership. Every tool.</h2>
-          <p style={{textAlign:"center",color:"#aaa",fontSize:14,marginBottom:"2.5rem"}}>No contracts. Cancel anytime.</p>
-          <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:16,alignItems:"start"}}>
-            <div style={{borderRadius:24,border:`2px solid ${C.rose}`,padding:"2rem",position:"relative",background:C.cream}}>
-              <div style={{position:"absolute",top:-14,left:"50%",transform:"translateX(-50%)",background:C.rose,color:C.white,fontSize:11,fontWeight:700,letterSpacing:"0.08em",padding:"4px 18px",borderRadius:20,whiteSpace:"nowrap"}}>🌱 FOUNDING MEMBER</div>
-              <div style={{marginTop:"1rem"}}>
-                <div style={{display:"flex",alignItems:"flex-end",gap:4,marginBottom:4}}>
-                  <span style={{fontSize:44,fontWeight:400,color:C.charcoal,lineHeight:1}}>$27</span>
-                  <span style={{fontSize:15,color:"#aaa",paddingBottom:4}}>/month</span>
-                </div>
-                <div style={{fontSize:11,color:C.rose,letterSpacing:"0.06em",marginBottom:"1.5rem"}}>First 50 members · locked in forever</div>
+          <p style={{textAlign:"center",color:"#aaa",fontSize:14,marginBottom:"2.5rem"}}>Try it free. Stay because it works.</p>
+          <div style={{borderRadius:24,border:`2px solid ${C.rose}`,padding:"2rem",position:"relative",background:C.cream,boxShadow:`0 12px 40px rgba(196,151,148,0.14)`}}>
+            <div style={{position:"absolute",top:-14,left:"50%",transform:"translateX(-50%)",background:C.rose,color:C.white,fontSize:11,fontWeight:700,letterSpacing:"0.08em",padding:"4px 20px",borderRadius:20,whiteSpace:"nowrap"}}>✨ 7-DAY FREE TRIAL</div>
+            <div style={{marginTop:"1rem",marginBottom:"1.5rem"}}>
+              <div style={{display:"flex",alignItems:"flex-end",gap:4,marginBottom:6}}>
+                <span style={{fontSize:48,fontWeight:400,color:C.charcoal,lineHeight:1}}>$67</span>
+                <span style={{fontSize:15,color:"#aaa",paddingBottom:6}}>/month after trial</span>
               </div>
-              {foundingFeatures.map((f,i)=>(
-                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
-                  <div style={{width:18,height:18,borderRadius:"50%",background:C.blush,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.roseDark,flexShrink:0,marginTop:2}}>✓</div>
-                  <span style={{fontSize:13,lineHeight:1.5,color:C.charcoal}}>{f}</span>
-                </div>
-              ))}
-              <button onClick={scrollTo} style={{...btn("fill"),width:"100%",marginTop:"1.5rem",padding:"13px",fontSize:15}}>Claim founding rate →</button>
+              <div style={{fontSize:13,color:"#999",lineHeight:1.6}}>Start free today. No credit card stress — cancel anytime during your trial and you won't be charged.</div>
             </div>
-            <div style={{borderRadius:24,border:`1.5px solid ${C.blush}`,padding:"2rem",background:C.pale}}>
-              <div style={{marginTop:"1rem"}}>
-                <div style={{display:"flex",alignItems:"flex-end",gap:4,marginBottom:4}}>
-                  <span style={{fontSize:44,fontWeight:400,color:"#bbb",lineHeight:1}}>$67</span>
-                  <span style={{fontSize:15,color:"#ccc",paddingBottom:4}}>/month</span>
-                </div>
-                <div style={{fontSize:11,color:"#ccc",marginBottom:"1.5rem"}}>Standard rate · after founding spots fill</div>
+            {planFeatures.map((f,i)=>(
+              <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
+                <div style={{width:18,height:18,borderRadius:"50%",background:C.blush,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:C.roseDark,flexShrink:0,marginTop:2}}>✓</div>
+                <span style={{fontSize:13,lineHeight:1.5,color:C.charcoal}}>{f}</span>
               </div>
-              {stdFeatures.map((f,i)=>(
-                <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
-                  <div style={{width:18,height:18,borderRadius:"50%",background:C.accent1,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#bbb",flexShrink:0,marginTop:2}}>✓</div>
-                  <span style={{fontSize:13,color:"#bbb",lineHeight:1.5}}>{f}</span>
-                </div>
-              ))}
-              <button onClick={scrollTo} style={{...btn("out"),width:"100%",marginTop:"1.5rem",padding:"13px",fontSize:14,opacity:0.6}}>Join at standard rate</button>
-            </div>
+            ))}
+            <button onClick={scrollTo} style={{...btn("fill"),width:"100%",marginTop:"1.5rem",padding:"14px",fontSize:16,background:`linear-gradient(135deg,${C.rose},${C.roseDark})`,boxShadow:`0 8px 24px rgba(196,151,148,0.35)`}}>Start my free trial →</button>
+            <p style={{fontSize:11,color:"#bbb",textAlign:"center",margin:"10px 0 0"}}>7 days free · then $67/month · Cancel anytime</p>
           </div>
         </div>
       </div>
@@ -461,7 +443,7 @@ function LandingPage({onLogin}){
         <h2 style={{fontSize:isMobile?26:36,color:C.white,fontWeight:400,margin:"0 0 8px",lineHeight:1.3}}>You've rebuilt yourself before.</h2>
         <p style={{fontSize:16,color:C.accent2,marginBottom:"2.5rem",lineHeight:1.6}}>This time, you get to build something.</p>
         <AuthForm onLogin={onLogin}/>
-        <p style={{fontSize:11,color:"rgba(255,255,255,0.25)",marginTop:"1.5rem",marginBottom:0}}>$27/month · Cancel anytime · No contracts</p>
+        <p style={{fontSize:11,color:"rgba(255,255,255,0.25)",marginTop:"1.5rem",marginBottom:0}}>7 days free · then $67/month · Cancel anytime</p>
       </div>
 
     </div>
