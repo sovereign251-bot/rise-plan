@@ -1925,40 +1925,89 @@ function PinterestTab({onSave}){
 // ── LIBRARY ───────────────────────────────────────────────────────────────────
 function LibraryTab({saved,onDelete,onExport}){
   const[filter,setFilter]=useState("All");
+  const[search,setSearch]=useState("");
+  const[expanded,setExpanded]=useState({});
+  const[copied,setCopied]=useState(null);
   const tags=["All",...Array.from(new Set(saved.map(i=>i.tag)))];
-  const filtered=filter==="All"?saved:saved.filter(i=>i.tag===filter);
+  const filtered=(filter==="All"?saved:saved.filter(i=>i.tag===filter))
+    .filter(i=>!search||i.content.toLowerCase().includes(search.toLowerCase())||i.tag.toLowerCase().includes(search.toLowerCase()));
+
+  function copyItem(content,idx){
+    navigator.clipboard?.writeText(content);
+    setCopied(idx);
+    setTimeout(()=>setCopied(null),1800);
+  }
+
   return(
     <div>
-      <HeroBanner title="Saved Library" sub="All your blueprints, plans, and content — organized and ready to use." icon="📂"/>
-      <div style={{...card}}>
+      <HeroBanner title="Your Library" sub="Every piece of content you've created — searchable, organised, and ready to use." icon="📂"/>
+      <div style={card}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem"}}>
-          <div style={{fontSize:11,color:C.roseDark,letterSpacing:"0.1em",fontWeight:600}}>{saved.length} SAVED ITEMS</div>
+          <div style={{fontSize:11,color:C.roseDark,letterSpacing:"0.1em",fontWeight:600}}>{saved.length} SAVED ITEM{saved.length!==1?"S":""}</div>
           {saved.length>0&&<button style={btn("out",true)} onClick={onExport}>⬇ Export all</button>}
         </div>
-        {saved.length===0
-          ?<div style={{textAlign:"center",padding:"2.5rem 0",color:"#ccc"}}>
-            <div style={{fontSize:40,marginBottom:10}}>✦</div>
-            <p style={{fontSize:13}}>No saved content yet.<br/>Generate content in any tab and save it here.</p>
+
+        {saved.length===0?(
+          <div style={{textAlign:"center",padding:"3rem 1rem"}}>
+            <div style={{fontSize:48,marginBottom:12}}>✨</div>
+            <div style={{fontFamily:"Georgia,serif",fontSize:16,color:C.charcoal,marginBottom:8}}>Your library is waiting</div>
+            <p style={{fontSize:13,color:"#aaa",lineHeight:1.7,maxWidth:280,margin:"0 auto"}}>
+              Everything you generate — content, blueprints, product plans — is automatically saved here. Start creating and it'll all show up.
+            </p>
           </div>
-          :<>
+        ):(
+          <>
+            {/* Search */}
+            <div style={{position:"relative",marginBottom:"1rem"}}>
+              <span style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)",fontSize:14,color:"#ccc"}}>🔍</span>
+              <input
+                style={{...inp,paddingLeft:34,background:C.pale,border:`1px solid ${C.blush}`}}
+                placeholder="Search your saved content..."
+                value={search}
+                onChange={e=>setSearch(e.target.value)}
+              />
+              {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"transparent",border:"none",color:"#bbb",cursor:"pointer",fontSize:18,lineHeight:1}}>×</button>}
+            </div>
+
+            {/* Tag filters */}
             <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:"1.25rem"}}>
               {tags.map(t=><span key={t} style={chip(t===filter)} onClick={()=>setFilter(t)}>{t}</span>)}
             </div>
-            {filtered.map((item,i)=>(
-              <div key={i} style={{border:`1px solid ${C.blush}`,borderRadius:12,padding:"1.25rem",marginBottom:"0.75rem",background:C.white}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                    <span style={{background:C.blush,color:C.roseDark,borderRadius:10,padding:"2px 10px",fontSize:10,fontWeight:600}}>{item.tag}</span>
-                    <span style={{fontSize:11,color:"#aaa"}}>{item.date}</span>
-                  </div>
-                  <button style={{background:"transparent",border:"none",color:"#ccc",cursor:"pointer",fontSize:18}} onClick={()=>onDelete(saved.indexOf(item))}>×</button>
-                </div>
-                <div style={{fontSize:13,color:C.charcoal,lineHeight:1.7,whiteSpace:"pre-wrap"}}>{item.content}</div>
-                <button style={{...btn("fill",true),marginTop:12}} onClick={()=>navigator.clipboard?.writeText(item.content)}>Copy</button>
+
+            {filtered.length===0?(
+              <div style={{textAlign:"center",padding:"2rem 0",color:"#bbb"}}>
+                <div style={{fontSize:13}}>No results for "{search}"</div>
+                <button onClick={()=>{setSearch("");setFilter("All");}} style={{...btn("out",true),marginTop:10,fontSize:12}}>Clear filters</button>
               </div>
-            ))}
+            ):filtered.map((item,i)=>{
+              const isLong=item.content.length>300;
+              const isExpanded=expanded[i];
+              const display=isLong&&!isExpanded?item.content.slice(0,300)+"…":item.content;
+              return(
+                <div key={i} style={{border:`1px solid ${C.blush}`,borderRadius:14,padding:"1.25rem",marginBottom:"0.75rem",background:C.white}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                    <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+                      <span style={{background:C.blush,color:C.roseDark,borderRadius:10,padding:"2px 10px",fontSize:10,fontWeight:600,whiteSpace:"nowrap"}}>{item.tag}</span>
+                      <span style={{fontSize:11,color:"#bbb"}}>{item.date}</span>
+                    </div>
+                    <button style={{background:"transparent",border:"none",color:"#ddd",cursor:"pointer",fontSize:20,lineHeight:1,flexShrink:0}} onClick={()=>onDelete(saved.indexOf(item))}>×</button>
+                  </div>
+                  <div style={{fontSize:13,color:C.charcoal,lineHeight:1.75,whiteSpace:"pre-wrap"}}>{display}</div>
+                  {isLong&&(
+                    <button onClick={()=>setExpanded(e=>({...e,[i]:!e[i]}))} style={{background:"transparent",border:"none",color:C.rose,fontSize:12,cursor:"pointer",padding:"6px 0 0",fontFamily:"Georgia,serif"}}>
+                      {isExpanded?"Show less ▲":"Show more ▼"}
+                    </button>
+                  )}
+                  <div style={{display:"flex",gap:8,marginTop:12,alignItems:"center"}}>
+                    <button style={{...btn("fill",true),minWidth:72,transition:"all 0.2s"}} onClick={()=>copyItem(item.content,i)}>
+                      {copied===i?"✓ Copied":"Copy"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </>
-        }
+        )}
       </div>
     </div>
   );
@@ -2020,7 +2069,7 @@ const NAV=[
   {id:"install",label:"Install",icon:"I",letter:true},
   {id:"sustain",label:"Sustain",icon:"S",letter:true},
   {id:"expand",label:"Expand",icon:"E",letter:true},
-  {id:"power",label:"Power Tools",icon:"⚙"},
+  {id:"power",label:"Power Tools",icon:"⚡"},
   {id:"pinterest",label:"Pinterest",icon:"📌"},
   {id:"library",label:"Library",icon:"📂"},
 ];
@@ -2041,21 +2090,58 @@ function MobileHeader({user,onSettings}){
 }
 
 function MobileNav({nav,setNav,saved}){
+  const[moreOpen,setMoreOpen]=useState(false);
+  const primary=NAV.filter(n=>["home","reclaim","install","sustain","expand"].includes(n.id));
+  const secondary=NAV.filter(n=>["power","pinterest","library"].includes(n.id));
+  const secondaryActive=secondary.some(n=>n.id===nav);
+
   return(
-    <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.charcoal,display:"flex",borderTop:`1px solid rgba(255,255,255,0.1)`,zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
-      {NAV.map(n=>{
-        const active=nav===n.id;
-        return(
-          <div key={n.id} onClick={()=>setNav(n.id)} style={{flex:1,padding:"8px 2px 6px",textAlign:"center",cursor:"pointer",borderTop:active?`2px solid ${C.rose}`:"2px solid transparent"}}>
-            {n.letter
-              ?<div style={{width:22,height:22,borderRadius:"50%",background:active?C.rose:"rgba(196,151,148,0.2)",color:active?C.white:C.accent2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,margin:"0 auto 2px"}}>{n.icon}</div>
-              :<div style={{fontSize:15,color:active?C.rose:C.accent2,marginBottom:2}}>{n.icon}</div>
-            }
-            <div style={{fontSize:8,color:active?C.rose:C.accent2,letterSpacing:"0.04em",lineHeight:1}}>{n.label}{n.id==="library"&&saved.length>0?` (${saved.length})`:""}</div>
+    <>
+      {/* More drawer */}
+      {moreOpen&&(
+        <div onClick={()=>setMoreOpen(false)} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(73,71,71,0.45)"}}>
+          <div onClick={e=>e.stopPropagation()} style={{position:"fixed",bottom:58,left:0,right:0,background:C.charcoal,borderRadius:"20px 20px 0 0",padding:"1rem 1rem 0.5rem",zIndex:201,boxShadow:"0 -8px 32px rgba(0,0,0,0.25)"}}>
+            <div style={{width:32,height:3,borderRadius:2,background:"rgba(255,255,255,0.18)",margin:"0 auto 1rem"}}/>
+            {secondary.map(n=>{
+              const active=nav===n.id;
+              return(
+                <div key={n.id} onClick={()=>{setNav(n.id);setMoreOpen(false);}} style={{display:"flex",alignItems:"center",gap:14,padding:"13px 16px",borderRadius:12,background:active?"rgba(196,151,148,0.15)":"transparent",cursor:"pointer",marginBottom:4}}>
+                  <span style={{fontSize:20,color:active?C.rose:C.accent2}}>{n.icon}</span>
+                  <span style={{fontSize:14,color:active?C.white:C.accent2,fontFamily:"Georgia,serif"}}>
+                    {n.label}{n.id==="library"&&saved.length>0?` (${saved.length})`:""}
+                  </span>
+                  {active&&<div style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:C.rose}}/>}
+                </div>
+              );
+            })}
+            <div style={{height:12}}/>
           </div>
-        );
-      })}
-    </div>
+        </div>
+      )}
+
+      {/* Bottom bar — 5 primary + More */}
+      <div style={{position:"fixed",bottom:0,left:0,right:0,background:C.charcoal,display:"flex",borderTop:`1px solid rgba(255,255,255,0.1)`,zIndex:100,paddingBottom:"env(safe-area-inset-bottom)"}}>
+        {primary.map(n=>{
+          const active=nav===n.id;
+          return(
+            <div key={n.id} onClick={()=>{setNav(n.id);setMoreOpen(false);}} style={{flex:1,padding:"8px 2px 6px",textAlign:"center",cursor:"pointer",borderTop:active?`2px solid ${C.rose}`:"2px solid transparent"}}>
+              {n.letter
+                ?<div style={{width:22,height:22,borderRadius:"50%",background:active?C.rose:"rgba(196,151,148,0.2)",color:active?C.white:C.accent2,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,margin:"0 auto 2px"}}>{n.icon}</div>
+                :<div style={{fontSize:15,color:active?C.rose:C.accent2,marginBottom:2}}>{n.icon}</div>
+              }
+              <div style={{fontSize:8,color:active?C.rose:C.accent2,letterSpacing:"0.04em",lineHeight:1}}>{n.label}</div>
+            </div>
+          );
+        })}
+        {/* More button */}
+        <div onClick={()=>setMoreOpen(o=>!o)} style={{flex:1,padding:"8px 2px 6px",textAlign:"center",cursor:"pointer",borderTop:secondaryActive?`2px solid ${C.rose}`:"2px solid transparent",position:"relative"}}>
+          <div style={{fontSize:17,color:secondaryActive||moreOpen?C.rose:C.accent2,marginBottom:2,letterSpacing:"0.1em"}}>···</div>
+          <div style={{fontSize:8,color:secondaryActive||moreOpen?C.rose:C.accent2,letterSpacing:"0.04em",lineHeight:1}}>
+            More{saved.length>0?` (${saved.length})`:""}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
