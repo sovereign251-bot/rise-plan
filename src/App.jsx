@@ -213,7 +213,7 @@ function AuthForm({onLogin,defaultMode="signup"}){
         <div style={{fontSize:11,letterSpacing:"0.28em",color:C.charcoal,marginTop:4}}>PLAN</div>
       </div>
       <div style={{display:"flex",gap:8,marginBottom:"1.5rem"}}>
-        {[["signup","Start my free trial →"],["login","Already a member"]].map(([m,label])=>(
+        {[["signup","Get started — $27 first month →"],["login","Already a member"]].map(([m,label])=>(
           <button key={m} type="button" style={m===mode?btn("fill"):btn("out")} onClick={()=>{setMode(m);setErr("");}}>
             {label}
           </button>
@@ -225,10 +225,10 @@ function AuthForm({onLogin,defaultMode="signup"}){
         <F label="Password"><input style={inp} type="password" name="password" autoComplete={mode==="signup"?"new-password":"current-password"} value={pw} onChange={e=>setPw(e.target.value)} placeholder={mode==="signup"?"Choose a password":"Your password"}/></F>
         {err&&<p style={{color:"#c0392b",fontSize:13,margin:"0 0 10px"}}>{err}</p>}
         <button type="submit" disabled={loading} style={{...btn("fill"),width:"100%",marginTop:8,padding:"13px",opacity:loading?0.7:1,fontSize:15}}>
-          {loading?"Please wait...":mode==="login"?"Enter my dashboard →":"Start my free trial →"}
+          {loading?"Please wait...":mode==="login"?"Enter my dashboard →":"Get started for $27 →"}
         </button>
       </form>
-      {mode==="signup"&&<p style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:12,marginBottom:0}}>7 days free · then $67/month · Cancel anytime</p>}
+      {mode==="signup"&&<p style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:12,marginBottom:0}}>$27 first month · then $67/month · Cancel anytime</p>}
     </div>
   );
 }
@@ -274,8 +274,8 @@ function LandingPage({onLogin}){
     {q:"What if I have no idea what kind of business to build?",a:"That's exactly what this is for. The Reclaim and Install phases walk you through discovering your offer from your own story, skills, and experience — you don't need to come in with an idea."},
     {q:"Will I actually have time for this with everything I'm managing?",a:"The tools are built for 20–30 minute sessions. You don't need to be online constantly — you build in the pockets of time you actually have."},
     {q:"Is this only for nurses?",a:"No — it's for any woman rebuilding after divorce who wants financial independence. The platform is built around your real life, wherever you're starting from."},
-    {q:"What if I join and it's not for me?",a:"Cancel anytime during or after your trial — no questions, no charges, no hard feelings. You're never locked in."},
-    {q:"What happens after the free trial?",a:"After 7 days, your membership continues at $67/month. You'll only be charged if you decide to stay. Cancel before the trial ends and you won't pay a thing."},
+    {q:"What if I join and it's not for me?",a:"Cancel anytime — no questions, no hard feelings. You're never locked in. If you cancel before your first month is up, you won't be charged again."},
+    {q:"What happens after the first month?",a:"Your membership continues at $67/month. You'll get a reminder before any charge. Cancel anytime — there are no contracts and no strings attached."},
   ];
 
   return(
@@ -311,7 +311,7 @@ function LandingPage({onLogin}){
             </button>
             <div style={{background:"rgba(201,168,76,0.14)",border:`1px solid rgba(201,168,76,0.4)`,borderRadius:30,padding:"7px 20px",display:"inline-flex",alignItems:"center",gap:8}}>
               <div style={{width:7,height:7,borderRadius:"50%",background:C.gold,flexShrink:0}}/>
-              <span style={{fontSize:12,color:C.gold,letterSpacing:"0.07em"}}>7-day free trial · then $67/month · Cancel anytime</span>
+              <span style={{fontSize:12,color:C.gold,letterSpacing:"0.07em"}}>$27 first month · then $67/month · Cancel anytime</span>
             </div>
           </div>
         </div>
@@ -402,13 +402,14 @@ function LandingPage({onLogin}){
           <h2 style={{fontSize:isMobile?24:32,textAlign:"center",fontWeight:400,margin:"0 0 6px"}}>One membership. Every tool.</h2>
           <p style={{textAlign:"center",color:"#aaa",fontSize:14,marginBottom:"2.5rem"}}>Try it free. Stay because it works.</p>
           <div style={{borderRadius:24,border:`2px solid ${C.rose}`,padding:"2rem",position:"relative",background:C.cream,boxShadow:`0 12px 40px rgba(196,151,148,0.14)`}}>
-            <div style={{position:"absolute",top:-14,left:"50%",transform:"translateX(-50%)",background:C.rose,color:C.white,fontSize:11,fontWeight:700,letterSpacing:"0.08em",padding:"4px 20px",borderRadius:20,whiteSpace:"nowrap"}}>✨ 7-DAY FREE TRIAL</div>
+            <div style={{position:"absolute",top:-14,left:"50%",transform:"translateX(-50%)",background:C.rose,color:C.white,fontSize:11,fontWeight:700,letterSpacing:"0.08em",padding:"4px 20px",borderRadius:20,whiteSpace:"nowrap"}}>🌱 FIRST MONTH OFFER</div>
             <div style={{marginTop:"1rem",marginBottom:"1.5rem"}}>
               <div style={{display:"flex",alignItems:"flex-end",gap:4,marginBottom:6}}>
-                <span style={{fontSize:48,fontWeight:400,color:C.charcoal,lineHeight:1}}>$67</span>
-                <span style={{fontSize:15,color:"#aaa",paddingBottom:6}}>/month after trial</span>
+                <span style={{fontSize:48,fontWeight:400,color:C.charcoal,lineHeight:1}}>$27</span>
+                <span style={{fontSize:15,color:"#aaa",paddingBottom:6}}>/first month</span>
               </div>
-              <div style={{fontSize:13,color:"#999",lineHeight:1.6}}>Start free today. No credit card stress — cancel anytime during your trial and you won't be charged.</div>
+              <div style={{fontSize:13,color:C.rose,letterSpacing:"0.04em",marginBottom:6}}>then $67/month · Cancel anytime</div>
+              <div style={{fontSize:13,color:"#999",lineHeight:1.6}}>A low-risk way to start. One month to explore everything — if it's not for you, cancel before renewal and you won't be charged again.</div>
             </div>
             {planFeatures.map((f,i)=>(
               <div key={i} style={{display:"flex",gap:10,alignItems:"flex-start",marginBottom:10}}>
@@ -416,8 +417,8 @@ function LandingPage({onLogin}){
                 <span style={{fontSize:13,lineHeight:1.5,color:C.charcoal}}>{f}</span>
               </div>
             ))}
-            <button onClick={scrollTo} style={{...btn("fill"),width:"100%",marginTop:"1.5rem",padding:"14px",fontSize:16,background:`linear-gradient(135deg,${C.rose},${C.roseDark})`,boxShadow:`0 8px 24px rgba(196,151,148,0.35)`}}>Start my free trial →</button>
-            <p style={{fontSize:11,color:"#bbb",textAlign:"center",margin:"10px 0 0"}}>7 days free · then $67/month · Cancel anytime</p>
+            <button onClick={scrollTo} style={{...btn("fill"),width:"100%",marginTop:"1.5rem",padding:"14px",fontSize:16,background:`linear-gradient(135deg,${C.rose},${C.roseDark})`,boxShadow:`0 8px 24px rgba(196,151,148,0.35)`}}>Get started for $27 →</button>
+            <p style={{fontSize:11,color:"#bbb",textAlign:"center",margin:"10px 0 0"}}>$27 first month · then $67/month · Cancel anytime</p>
           </div>
         </div>
       </div>
@@ -443,7 +444,7 @@ function LandingPage({onLogin}){
         <h2 style={{fontSize:isMobile?26:36,color:C.white,fontWeight:400,margin:"0 0 8px",lineHeight:1.3}}>You've rebuilt yourself before.</h2>
         <p style={{fontSize:16,color:C.accent2,marginBottom:"2.5rem",lineHeight:1.6}}>This time, you get to build something.</p>
         <AuthForm onLogin={onLogin}/>
-        <p style={{fontSize:11,color:"rgba(255,255,255,0.25)",marginTop:"1.5rem",marginBottom:0}}>7 days free · then $67/month · Cancel anytime</p>
+        <p style={{fontSize:11,color:"rgba(255,255,255,0.25)",marginTop:"1.5rem",marginBottom:0}}>$27 first month · then $67/month · Cancel anytime</p>
       </div>
 
     </div>
