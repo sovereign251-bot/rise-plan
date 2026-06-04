@@ -757,10 +757,8 @@ function ReclaimTab({data,setData,onSave}){
 }
 
 // ── PRODUCT BUILDER (standalone for cleanliness) ──────────────────────────────
-function ProductBuilder({data, setData, onSave}) {
+function ProductBuilder({pf={}, setP=()=>{}, onSave}) {
   const isMobile=useIsMobile();
-  const pf = data.product || {};
-  const setP = (k,v) => setData(d => ({...d, product:{...d.product,[k]:v}}));
   const [phase, setPhase] = useState('form');
   const [outline, setOutline] = useState(null);
   const [outlineLoading, setOutlineLoading] = useState(false);
@@ -768,6 +766,8 @@ function ProductBuilder({data, setData, onSave}) {
   const [sectionContents, setSectionContents] = useState({});
   const [sectionLoadings, setSectionLoadings] = useState({});
   const [nudges, setNudges] = useState({});
+  const [stackResult, setStackResult] = useState(null);
+  const [stackLoading, setStackLoading] = useState(false);
 
   const fmts=["Ebook/PDF Guide","Mini-course (3–5 lessons)","Full online course (6+ modules)","Template pack","Swipe file/Resource vault","Planner/workbook","Audio series","Email course","Workshop recording","Bundle (multiple formats)","Coaching program","Membership/community","Notion template"];
 
@@ -838,6 +838,14 @@ IMPORTANT: Write the COMPLETE section. This is final, publish-ready content — 
     onSave(text, "Complete Product");
   }
 
+  async function generateStack(){
+    setStackLoading(true);setStackResult(null);
+    const sys=`You are a digital product stack strategist for women building digital businesses. Design a 3-tier product stack — freebie, loss leader, and core offer — specific to this creator. Not generic — each tier should feel like only she could make it.\n\nOUTPUT FORMAT (follow exactly):\n\n🎁 FREEBIE — Lead Magnet (FREE)\nName: [specific name]\nFormat: [checklist, guide, template, etc.]\nWhat it delivers: [one punchy sentence]\nWhy it works: [one sentence on why this leads naturally to the next tier]\n\n💰 LOSS LEADER — Entry Offer ($17–$37)\nName: [specific name]\nFormat: [format]\nSuggested price: $[price]\nWhat it delivers: [one punchy sentence]\nWhy it works: [one sentence on why this leads naturally to the core offer]\n\n⭐ CORE OFFER — Main Transformation\nName: [specific name]\nFormat: [format]\nSuggested price: $[price]\nWhat it delivers: [one punchy sentence]\nWhy it's the natural next step: [one sentence]`;
+    const prompt=`Core product: ${outline?.productName||pf.idea||""}\nProduct type: ${outline?.productType||pf.format||""}\nTransformation: ${outline?.transformation||(pf.before&&pf.after?`From "${pf.before}" to "${pf.after}"`:"")}\nTarget buyer: ${outline?.targetAudience||pf.buyer||""}\nCurrent price point: ${pf.price||""}`;
+    const r=await callClaude(sys,prompt,1200);
+    setStackResult(r);onSave(r,"Product Stack");setStackLoading(false);
+  }
+
   const generatedCount = Object.keys(sectionContents).length;
 
   if (phase === 'outline' && outline) {
@@ -905,6 +913,30 @@ IMPORTANT: Write the COMPLETE section. This is final, publish-ready content — 
         <div style={{marginTop:"1rem",display:"flex",gap:8,flexWrap:"wrap"}}>
           <button style={btn("out")} onClick={()=>setPhase('form')}>← Edit product details</button>
           {generatedCount > 0 && <button style={btn("fill")} onClick={saveAll}>Save all to library →</button>}
+        </div>
+
+        {/* ── PRODUCT STACK ── */}
+        <div style={{...card,marginTop:"1.25rem",border:`1px solid ${C.blush}`}}>
+          <Sec title="Product Stack" sub="Design the 3-tier ecosystem around your core offer">
+            {!stackResult?(
+              <>
+                <p style={{fontSize:13,color:"#999",lineHeight:1.75,margin:"0 0 1rem"}}>With your core product built, design the full ecosystem — a free lead magnet to grow your list, a low-ticket entry offer to create buyers, and smart positioning for your main offer.</p>
+                <button style={btn("fill")} onClick={generateStack} disabled={stackLoading}>
+                  {stackLoading?"Building your stack...":"Generate my product stack →"}
+                </button>
+                {stackLoading&&<Spinner/>}
+              </>
+            ):(
+              <>
+                <div style={aiBox}>{stripMarkdown(stackResult)}</div>
+                <div style={{display:"flex",gap:8,alignItems:"center",marginTop:10,flexWrap:"wrap"}}>
+                  <button style={btn("fill",true)} onClick={()=>navigator.clipboard?.writeText(stripMarkdown(stackResult))}>Copy</button>
+                  <button style={btn("out",true)} onClick={()=>setStackResult(null)}>Regenerate</button>
+                  <span style={{fontSize:11,color:C.rose}}>✓ Auto-saved to library</span>
+                </div>
+              </>
+            )}
+          </Sec>
         </div>
       </div>
     );
@@ -975,6 +1007,38 @@ function InstallTab({data,setData,onSave}){
   const bf=data.brand||{};const idf=data.ideagen||{};
   const setB=(k,v)=>setData(d=>({...d,brand:{...d.brand,[k]:v}}));
   const setI=(k,v)=>setData(d=>({...d,ideagen:{...d.ideagen,[k]:v}}));
+
+  // ── Multi-project management ──
+  useEffect(()=>{
+    if(!data.projects||data.projects.length===0){
+      const id=`proj_${Date.now()}`;
+      setData(d=>({...d,
+        projects:[{id,name:"My First Product",product:d.product||{},createdAt:new Date().toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"})}],
+        activeProjectId:id,
+      }));
+    }
+  },[]);// eslint-disable-line react-hooks/exhaustive-deps
+
+  const projects=data.projects||[];
+  const activeProjectId=data.activeProjectId||(projects[0]?.id)||null;
+  const activeProject=projects.find(p=>p.id===activeProjectId)||projects[0];
+  const activePf=activeProject?.product||{};
+  const setActivePf=(k,v)=>setData(d=>({...d,projects:(d.projects||[]).map(p=>p.id===activeProjectId?{...p,product:{...p.product,[k]:v}}:p)}));
+
+  function createProject(){
+    const id=`proj_${Date.now()}`;
+    setData(d=>({...d,
+      projects:[...(d.projects||[]),{id,name:`Product ${(d.projects||[]).length+1}`,product:{},createdAt:new Date().toLocaleDateString("en-CA",{month:"short",day:"numeric",year:"numeric"})}],
+      activeProjectId:id,
+    }));
+    setTool("product");
+  }
+  function deleteProject(id){
+    setData(d=>{
+      const rem=(d.projects||[]).filter(p=>p.id!==id);
+      return{...d,projects:rem,activeProjectId:rem.length?rem[0].id:null};
+    });
+  }
 
   function doNudge(id, label, ctx) {
     getNudge(id, label, ctx, setNudges);
@@ -1069,7 +1133,31 @@ function InstallTab({data,setData,onSave}){
       )}
 
       {tool==="product"&&(
-        <ProductBuilder data={data} setData={setData} onSave={onSave}/>
+        <>
+          {/* Project Switcher */}
+          <div style={{marginBottom:"1rem"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <div style={{fontSize:10,color:C.roseDark,letterSpacing:"0.15em",fontWeight:700,textTransform:"uppercase"}}>Your Products</div>
+              <button onClick={createProject} style={btn("fill",true)}>+ New product</button>
+            </div>
+            <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+              {projects.map(p=>(
+                <div key={p.id} onClick={()=>setData(d=>({...d,activeProjectId:p.id}))}
+                  style={{flexShrink:0,padding:"10px 14px",borderRadius:12,border:`1.5px solid ${p.id===activeProjectId?C.rose:C.blush}`,background:p.id===activeProjectId?C.cream:C.white,cursor:"pointer",minWidth:130,maxWidth:180,position:"relative"}}>
+                  <div style={{fontSize:12,fontWeight:600,color:p.id===activeProjectId?C.roseDark:C.charcoal,marginBottom:2,paddingRight:projects.length>1?18:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    {p.product?.idea?.split(' ').slice(0,5).join(' ')||p.name}
+                  </div>
+                  <div style={{fontSize:10,color:"#bbb"}}>{p.createdAt||"New"}</div>
+                  {projects.length>1&&(
+                    <button onClick={e=>{e.stopPropagation();deleteProject(p.id);}}
+                      style={{position:"absolute",top:6,right:8,background:"transparent",border:"none",color:"#ccc",cursor:"pointer",fontSize:16,lineHeight:1,padding:0}}>×</button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <ProductBuilder key={activeProjectId} pf={activePf} setP={setActivePf} onSave={onSave}/>
+        </>
       )}
     </div>
   );
@@ -1267,7 +1355,10 @@ Output all 30 days in order. No extra text. No commentary. Just the 30 days.`;
             <div style={{display:"grid",gridTemplateColumns:isMobile?"1fr":"1fr 1fr",gap:12,marginBottom:"0.75rem"}}>
               <F label="Your niche"><input style={inp} value={f.niche||""} onChange={e=>set("niche",e.target.value)} placeholder="e.g. Nurse entrepreneurs, financial freedom after divorce..."/></F>
               <F label="Target audience"><input style={inp} value={f.audience||""} onChange={e=>set("audience",e.target.value)} placeholder="e.g. Divorced moms who are nurses wanting digital income..."/></F>
-              <F label="Your product or offer"><input style={inp} value={f.product||""} onChange={e=>set("product",e.target.value)} placeholder="e.g. My ebook on paying off debt on a nurse's salary"/></F>
+              <F label="Your product or offer">
+                <input style={inp} value={f.product||""} onChange={e=>set("product",e.target.value)} placeholder="e.g. My ebook on paying off debt on a nurse's salary"/>
+                {(data.projects||[]).length>0&&(()=>{const ap=(data.projects||[]).find(p=>p.id===data.activeProjectId)||(data.projects||[])[0];const idea=ap?.product?.idea;return idea?(<button onClick={()=>set("product",idea)} style={{...btn("out",true),fontSize:10,marginTop:6}}>Use active product →</button>):null;})()}
+              </F>
               <F label="Platform"><input style={inp} value={f.platform||""} onChange={e=>set("platform",e.target.value)} placeholder="e.g. Instagram, TikTok..."/></F>
             </div>
             <F label="Tone">
